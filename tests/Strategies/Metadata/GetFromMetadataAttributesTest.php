@@ -10,6 +10,7 @@ use Knuckles\Scribe\Attributes\Group;
 use Knuckles\Scribe\Attributes\Subgroup;
 use Knuckles\Scribe\Attributes\Unauthenticated;
 use Knuckles\Scribe\Extracting\Strategies\Metadata\GetFromMetadataAttributes;
+use Knuckles\Scribe\Tests\Fixtures\TestGroupBackedEnum;
 use Knuckles\Scribe\Tools\DocumentationConfig;
 use PHPUnit\Framework\TestCase;
 use DMS\PHPUnitExtensions\ArraySubset\ArraySubsetAsserts;
@@ -80,6 +81,21 @@ class UseMetadataAttributesTest extends TestCase
             "subgroup" => "SG BA",
             "subgroupDescription" => "",
             "title" => "Endpoint B1",
+            "description" => "",
+            "authenticated" => false,
+        ], $results);
+
+        $endpoint = $this->endpoint(function (ExtractedEndpointData $e) {
+            $e->controller = new ReflectionClass(MetadataAttributesTestController::class);
+            $e->method = $e->controller->getMethod('b2');
+        });
+        $results = $this->fetch($endpoint);
+        $this->assertArraySubset([
+            "groupName" => "Users",
+            "groupDescription" => "",
+            "subgroup" => "Admins",
+            "subgroupDescription" => "",
+            "title" => "Endpoint B2",
             "description" => "",
             "authenticated" => false,
         ], $results);
@@ -157,6 +173,13 @@ class MetadataAttributesTestController
     #[Subgroup("SG BA")]
     #[Endpoint("Endpoint B1")]
     public function b1()
+    {
+    }
+
+    #[Group(TestGroupBackedEnum::Users)]
+    #[Subgroup(TestGroupBackedEnum::Admins)]
+    #[Endpoint("Endpoint B2")]
+    public function b2()
     {
     }
 }
