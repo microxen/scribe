@@ -24,7 +24,7 @@ class Subgroup
         }
 
         throw new \InvalidArgumentException(
-            'The name property of a group must be either a PHP Backed Enum or a string'
+            'The name property of a subgroup must be either a PHP Backed Enum or a string'
         );
     }
 
