@@ -4,10 +4,10 @@ namespace Knuckles\Camel;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Collection;
-use Spatie\DataTransferObject\DataTransferObjectCollection;
+use Spatie\LaravelData\DataCollection;
 
 /**
- * @template T of \Spatie\DataTransferObject\DataTransferObject
+ * @template T of \Spatie\LaravelData\DataCollection
  */
 class BaseDTOCollection extends Collection
 {
