@@ -82,9 +82,9 @@ class ExtractedEndpointData extends BaseDTO
 
     public function __construct(array $parameters = [])
     {
-        $parameters['metadata'] = $parameters['metadata'] ?? new Metadata([]);
-        $parameters['responses'] = $parameters['responses'] ?? new ResponseCollection([]);
-
+        $this->metadata = new Metadata([]);
+        $this->responses = new ResponseCollection([]);
+        
         parent::__construct($parameters);
 
         $defaultNormalizer = fn() => UrlParamsNormalizer::normalizeParameterNamesInRouteUri($this->route, $this->method);
@@ -95,19 +95,29 @@ class ExtractedEndpointData extends BaseDTO
         };
     }
 
-    public static function fromRoute(Route $route, array $extras = []): self
+    public static function fromRoute(Route $route): static
     {
-        $httpMethods = self::getMethods($route);
-        $uri = $route->uri();
+        $controller = $route->getController();
+        $class = new ReflectionClass($controller);
+        $method = $class->getMethod($route->getActionMethod());
 
-        [$controllerName, $methodName] = u::getRouteClassAndMethodNames($route);
-        $controller = new ReflectionClass($controllerName);
-        $method = u::getReflectedRouteMethod([$controllerName, $methodName]);
-
-        $data = compact('httpMethods', 'uri', 'controller', 'method', 'route');
-        $data = array_merge($data, $extras);
-
-        return new ExtractedEndpointData($data);
+        return new static([
+            'httpMethods' => $route->methods(),
+            'uri' => $route->uri(),
+            'controller' => $class,
+            'method' => $method,
+            'route' => $route,
+            'metadata' => new Metadata([]),
+            'responses' => new ResponseCollection([]),
+            'headers' => [],
+            'urlParameters' => [],
+            'cleanUrlParameters' => [],
+            'queryParameters' => [],
+            'cleanQueryParameters' => [],
+            'bodyParameters' => [],
+            'cleanBodyParameters' => [],
+            'fileParameters' => []
+        ]);
     }
 
     /**
