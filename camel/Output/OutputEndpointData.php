@@ -382,8 +382,13 @@ class OutputEndpointData extends BaseDTO
         return [$files, $regularParameters];
     }
 
-    public static function create(array $parameters = []): static
+    public static function create(BaseDTO|array $data, BaseDTO|array $inheritFrom = []): static
     {
-        return new static($parameters);
+        if (is_array($data)) {
+            return new static($data);
+        }
+        
+        // If it's a DTO, convert to array
+        return new static($data->toArray());
     }
 }
