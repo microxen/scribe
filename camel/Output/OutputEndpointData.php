@@ -94,11 +94,37 @@ class OutputEndpointData extends BaseDTO
 
     public function __construct(array $parameters = [])
     {
-        // spatie/dto currently doesn't auto-cast nested DTOs like that
+        // Initialize metadata with defaults if not set
+        if (!isset($parameters['metadata'])) {
+            $parameters['metadata'] = new Metadata([
+                'groupName' => '',
+                'groupDescription' => '',
+                'authenticated' => false
+            ]);
+        } elseif (is_array($parameters['metadata'])) {
+            $parameters['metadata'] = new Metadata($parameters['metadata']);
+        }
+
+        // Handle other parameter conversions
         $parameters['responses'] = new ResponseCollection($parameters['responses'] ?? []);
-        $parameters['bodyParameters'] = array_map(fn($param) => new Parameter($param), $parameters['bodyParameters'] ?? []);
-        $parameters['queryParameters'] = array_map(fn($param) => new Parameter($param), $parameters['queryParameters'] ?? []);
-        $parameters['urlParameters'] = array_map(fn($param) => new Parameter($param), $parameters['urlParameters'] ?? []);
+        $parameters['bodyParameters'] = array_map(function ($param) {
+            return $param instanceof \Knuckles\Camel\Extraction\Parameter 
+                ? new Parameter($param->toArray()) 
+                : new Parameter($param);
+        }, $parameters['bodyParameters'] ?? []);
+
+        $parameters['queryParameters'] = array_map(function ($param) {
+            return $param instanceof \Knuckles\Camel\Extraction\Parameter 
+                ? new Parameter($param->toArray()) 
+                : new Parameter($param);
+        }, $parameters['queryParameters'] ?? []);
+
+        $parameters['urlParameters'] = array_map(function ($param) {
+            return $param instanceof \Knuckles\Camel\Extraction\Parameter 
+                ? new Parameter($param->toArray()) 
+                : new Parameter($param);
+        }, $parameters['urlParameters'] ?? []);
+
         $parameters['responseFields'] = array_map(fn($param) => new ResponseField($param), $parameters['responseFields'] ?? []);
 
         parent::__construct($parameters);
@@ -354,5 +380,10 @@ class OutputEndpointData extends BaseDTO
             }
         }
         return [$files, $regularParameters];
+    }
+
+    public static function create(array $parameters = []): static
+    {
+        return new static($parameters);
     }
 }
