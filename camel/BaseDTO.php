@@ -3,11 +3,22 @@
 namespace Knuckles\Camel;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Spatie\LaravelData\Data;
 
-class BaseDTO extends Data implements Arrayable, \ArrayAccess
+class BaseDTO implements Arrayable, \ArrayAccess
 {
     public array $custom = [];
+
+    public function __construct(array $parameters = [])
+    {
+        foreach ($parameters as $property => $value) {
+            $this->$property = $value;
+        }
+    }
+
+    public function toArray()
+    {
+        return get_object_vars($this);
+    }
 
     public function offsetExists(mixed $offset): bool
     {
