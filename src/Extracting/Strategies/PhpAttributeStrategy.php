@@ -23,13 +23,18 @@ abstract class PhpAttributeStrategy extends Strategy
      */
     protected static array $attributeNames;
 
-    public function __invoke(ExtractedEndpointData $endpointData, array $routeRules = []): array
+    public function __invoke(ExtractedEndpointData $endpointData, array $routeRules = []): ?array
     {
-        $this->endpointData = $endpointData;
-        [$attributesOnMethod, $attributesOnFormRequest, $attributesOnController] =
-            $this->getAttributes($endpointData->method, $endpointData->controller);
+        if (!$endpointData->method) {
+            return [];
+        }
 
-        return $this->extractFromAttributes($endpointData, $attributesOnMethod, $attributesOnFormRequest, $attributesOnController);
+        [$attributesOnMethod, $attributesOnClass, $attributesOnProperty] = $this->getAttributes(
+            $endpointData->method,
+            $endpointData->controller
+        );
+
+        return $this->extractFromAttributes($endpointData, $attributesOnMethod, $attributesOnClass, $attributesOnProperty);
     }
 
     /**
