@@ -84,12 +84,11 @@ class GetFromInlineValidatorBase extends Strategy
                     }
                     // Try to extract Enum rule
                     else if (
-                        function_exists('enum_exists') &&
                         ($enum = $this->extractEnumClassFromArrayItem($arrayItem)) &&
                         enum_exists($enum) && method_exists($enum, 'tryFrom')
                     ) {
                         // $case->value only exists on BackedEnums, not UnitEnums
-                        // method_exists($enum, 'tryFrom') implies $enum instanceof BackedEnum
+                        // method_exists($enum, 'tryFrom') implies the enum is a BackedEnum
                         // @phpstan-ignore-next-line
                         $rulesList[] = 'in:' . implode(',', array_map(fn ($case) => $case->value, $enum::cases()));
                     }

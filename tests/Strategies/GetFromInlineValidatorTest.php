@@ -232,10 +232,6 @@ class GetFromInlineValidatorTest extends BaseLaravelTest
     /** @test */
     public function can_fetch_inline_enum_rules()
     {
-        if (phpversion() < 8.1) {
-            $this->markTestSkipped('Enums are only supported in PHP 8.1 or later');
-        }
-
         $endpoint = $this->endpoint(function (ExtractedEndpointData $e) {
             $e->method = new \ReflectionMethod(TestController::class, 'withEnumRule');
         });

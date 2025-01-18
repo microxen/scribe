@@ -45,7 +45,7 @@ class ValidationRuleParsingTest extends BaseLaravelTest
         Schema::create('users', function ($table) {
             $table->id();
         });
-        
+
         $results = $this->strategy->parse($ruleset, $customInfo);
 
         $parameterName = array_keys($ruleset)[0];
@@ -57,7 +57,7 @@ class ValidationRuleParsingTest extends BaseLaravelTest
 
         // Validate that the generated values actually pass validation (for rules where we can generate some data)
         if (is_string($ruleset[$parameterName]) && str_contains($ruleset[$parameterName], "exists")) return;
-        
+
         $exampleData = [$parameterName => $results[$parameterName]['example']];
         $validator = Validator::make($exampleData, $ruleset);
         try {
@@ -552,10 +552,6 @@ class ValidationRuleParsingTest extends BaseLaravelTest
     /** @test */
     public function can_parse_enum_rules()
     {
-        if (phpversion() < 8.1) {
-            $this->markTestSkipped('Enums are only supported in PHP 8.1 or later');
-        }
-
         $results = $this->strategy->parse([
             'enum' => [
                 'required',

@@ -171,6 +171,12 @@ class OutputTest extends BaseLaravelTest
     /** @test */
     public function generated_postman_collection_file_is_correct()
     {
+        if (phpversion() < 8.3) {
+            // See https://github.com/FakerPHP/Faker/issues/694
+            $this->markTestSkipped('Faker seeding changed in PHP 8.3');
+            return;
+        }
+
         RouteFacade::post('/api/withBodyParametersAsArray', [TestController::class, 'withBodyParametersAsArray']);
         RouteFacade::post('/api/withFormDataParams', [TestController::class, 'withFormDataParams']);
         RouteFacade::post('/api/withBodyParameters', [TestController::class, 'withBodyParameters']);
@@ -205,6 +211,12 @@ class OutputTest extends BaseLaravelTest
     /** @test */
     public function generated_openapi_spec_file_is_correct()
     {
+        if (phpversion() < 8.3) {
+            // See https://github.com/FakerPHP/Faker/issues/694
+            $this->markTestSkipped('Faker seeding changed in PHP 8.3');
+            return;
+        }
+
         RouteFacade::post('/api/withBodyParametersAsArray', [TestController::class, 'withBodyParametersAsArray']);
         RouteFacade::post('/api/withFormDataParams', [TestController::class, 'withFormDataParams']);
         RouteFacade::get('/api/withResponseTag', [TestController::class, 'withResponseTag']);

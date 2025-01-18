@@ -205,7 +205,7 @@ trait ParsesValidationRules
             return true;
         }
 
-        if (function_exists('enum_exists') && $rule instanceof \Illuminate\Validation\Rules\Enum) {
+        if ($rule instanceof \Illuminate\Validation\Rules\Enum) {
             $reflection = new \ReflectionClass($rule);
             $property = $reflection->getProperty('type');
             $property->setAccessible(true);
@@ -213,7 +213,7 @@ trait ParsesValidationRules
 
             if (enum_exists($type) && method_exists($type, 'tryFrom')) {
                 // $case->value only exists on BackedEnums, not UnitEnums
-                // method_exists($enum, 'tryFrom') implies $enum instanceof BackedEnum
+                // method_exists($enum, 'tryFrom') implies the enum is a BackedEnum
                 // @phpstan-ignore-next-line
                 $cases = array_map(fn ($case) => $case->value, $type::cases());
                 $parameterData['type'] = gettype($cases[0]);
