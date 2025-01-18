@@ -21,7 +21,7 @@ class PostmanCollectionWriter
 
     protected string $baseUrl;
 
-    public function __construct(DocumentationConfig $config = null)
+    public function __construct(?DocumentationConfig $config = null)
     {
         $this->config = $config ?: new DocumentationConfig(config('scribe', []));
         $this->baseUrl = $this->config->get('base_url') ?: config('app.url');
@@ -222,7 +222,7 @@ class PostmanCollectionWriter
             if (!is_array($value)) {
                 $body[] = [
                     'key' => $index,
-                    'value' => $value,
+                    'value' => (string) $value,
                     'type' => 'text',
                     'description' => $paramsFullDetails[$index]->description ?? '',
                 ];
