@@ -62,7 +62,7 @@
     "scripts": {
         "lint": "phpstan analyse -c ./phpstan.neon src camel --memory-limit 1G",
         "test": "phpunit --stop-on-failure",
-        "test-ci": "pest --coverage --min=80",
+        "test-ci": "XDEBUG_MODE=coverage pest --coverage --min=80",
         "test-parallel": "paratest -p16 --stop-on-failure",
         "test-parallel-ci": "paratest -p16"
     },
