@@ -313,12 +313,14 @@ class ResponseCalls extends Strategy
     ): array
     {
         return static::wrapWithSettings(
-            static::class, only: $only, except: $except, otherSettings: compact(
-            'config',
-            'queryParams',
-            'bodyParams',
-            'fileParams',
-            'cookies',
-        ));
+            only: $only,
+            except: $except,
+            otherSettings: compact(
+                'config',
+                'queryParams',
+                'bodyParams',
+                'fileParams',
+                'cookies',
+            ));
     }
 }

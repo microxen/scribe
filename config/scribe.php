@@ -3,7 +3,7 @@
 use Knuckles\Scribe\Config;
 use Knuckles\Scribe\Config\{AuthIn,ExternalTheme};
 use Knuckles\Scribe\Extracting\Strategies;
-use function Knuckles\Scribe\Config\{removeStrategies, withConfiguredStrategy};
+use function Knuckles\Scribe\Config\{removeStrategies, configureStrategy};
 
 /**
  * For documentation, use your IDE's autocomplete features, or see https://scribe.knuckles.wtf/laravel/reference/config
@@ -32,8 +32,9 @@ return Config\Factory::make(
             MARKDOWN
         ),
         strategies: Config\Extracting::strategies(
+        // The strategies Scribe will use to extract information about your routes at each stage.
+        // Use configureStrategy() to specify settings for a strategy in the list.
         // Use removeStrategies() to remove an included strategy.
-        // Use withConfiguredStrategy() to configure a strategy which supports it.
             metadata: [...Config\Defaults::METADATA_STRATEGIES],
             urlParameters: [...Config\Defaults::URL_PARAMETERS_STRATEGIES],
             queryParameters: [...Config\Defaults::QUERY_PARAMETERS_STRATEGIES],
@@ -45,7 +46,7 @@ return Config\Factory::make(
                 ]),
             ],
             bodyParameters: [...Config\Defaults::BODY_PARAMETERS_STRATEGIES],
-            responses: withConfiguredStrategy(
+            responses: configureStrategy(
                 Config\Defaults::RESPONSES_STRATEGIES,
                 Strategies\Responses\ResponseCalls::withSettings(
                     only: ['GET *'],

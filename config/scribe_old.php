@@ -2,7 +2,7 @@
 
 use Knuckles\Scribe\Extracting\Strategies;
 use Knuckles\Scribe\Config;
-use function Knuckles\Scribe\Config\{removeStrategies, withConfiguredStrategy};
+use function Knuckles\Scribe\Config\{removeStrategies, configureStrategy};
 
 return [
     // The HTML <title> for the generated documentation. If this is empty, Scribe will infer it from config('app.name').
@@ -202,8 +202,8 @@ INTRO
     ],
 
     // The strategies Scribe will use to extract information about your routes at each stage.
+    // Use configureStrategy() to specify settings for a strategy in the list.
     // Use removeStrategies() to remove an included strategy.
-    // Use withConfiguredStrategy() to configure a strategy which supports it.
     'strategies' => [
         'metadata' => [
             ...Config\Defaults::METADATA_STRATEGIES,
@@ -224,12 +224,8 @@ INTRO
         'bodyParameters' => [
             ...Config\Defaults::BODY_PARAMETERS_STRATEGIES,
         ],
-        'responses' => [
-            Strategies\Responses\UseResponseAttributes::class,
-            Strategies\Responses\UseTransformerTags::class,
-            Strategies\Responses\UseApiResourceTags::class,
-            Strategies\Responses\UseResponseTag::class,
-            Strategies\Responses\UseResponseFileTag::class,
+        'responses' => configureStrategy(
+            Config\Defaults::RESPONSES_STRATEGIES,
             Strategies\Responses\ResponseCalls::withSettings(
                 only: ['GET *'],
                 // Disable debug mode when generating response calls to avoid error stack traces in responses
@@ -237,7 +233,7 @@ INTRO
                     'app.debug' => false,
                 ]
             )
-        ],
+        ),
         'responseFields' => [
             ...Config\Defaults::RESPONSE_FIELDS_STRATEGIES,
         ]

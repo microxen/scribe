@@ -21,8 +21,10 @@ class StaticData extends Strategy
     ): array
     {
         return static::wrapWithSettings(
-            static::class, only: $only, except: $except, otherSettings: compact(
-            'data',
-        ));
+            only: $only, except: $except,
+            otherSettings: compact(
+                'data',
+            )
+        );
     }
 }

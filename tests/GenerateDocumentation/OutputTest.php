@@ -21,7 +21,7 @@ use Knuckles\Scribe\Tools\Utils;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Yaml\Yaml;
 use Knuckles\Scribe\Extracting\Strategies;
-use function Knuckles\Scribe\Config\withConfiguredStrategy;
+use function Knuckles\Scribe\Config\configureStrategy;
 
 class OutputTest extends BaseLaravelTest
 {
@@ -593,7 +593,7 @@ class OutputTest extends BaseLaravelTest
     protected function enableResponseCalls(): void
     {
         $this->setConfig([
-            'strategies.responses' => withConfiguredStrategy(
+            'strategies.responses' => configureStrategy(
                 config('scribe.strategies.responses'),
                 Strategies\Responses\ResponseCalls::withSettings(only: ['GET *'], except: [])
             )

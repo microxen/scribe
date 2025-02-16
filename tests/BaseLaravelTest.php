@@ -6,7 +6,7 @@ use DMS\PHPUnitExtensions\ArraySubset\ArraySubsetAsserts;
 use Knuckles\Scribe\Config\AuthIn;
 use Knuckles\Scribe\ScribeServiceProvider;
 use Orchestra\Testbench\TestCase;
-use function Knuckles\Scribe\Config\withConfiguredStrategy;
+use function Knuckles\Scribe\Config\configureStrategy;
 use Knuckles\Scribe\Config;
 use Knuckles\Scribe\Extracting\Strategies;
 
@@ -68,7 +68,7 @@ class BaseLaravelTest extends TestCase
                     queryParameters: Config\Defaults::QUERY_PARAMETERS_STRATEGIES,
                     headers: Config\Defaults::HEADERS_STRATEGIES,
                     bodyParameters: Config\Defaults::BODY_PARAMETERS_STRATEGIES,
-                    responses: withConfiguredStrategy(
+                    responses: configureStrategy(
                         Config\Defaults::RESPONSES_STRATEGIES,
                         Strategies\Responses\ResponseCalls::withSettings(
                             only: [],
