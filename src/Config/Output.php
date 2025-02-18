@@ -99,7 +99,7 @@ class Output
         array         $middleware = [],
         array         $htmlAttributes = [],
         ?string       $assetsDirectory = null,
-        ?string        $autoLogin = null,
+        ?bool        $autoLogin = null,
         ?string       $keyPath = null,
     ): array {
         return [
