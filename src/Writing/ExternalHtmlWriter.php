@@ -17,6 +17,8 @@ class ExternalHtmlWriter extends HtmlWriter
             'baseUrl' => $this->baseUrl,
             'tryItOut' => $this->config->get('try_it_out'),
             'htmlAttributes' => $this->config->get('external.html_attributes', []),
+            'autoLogin' => $this->config->get('external.auto_login', false),
+            'keyPath' => $this->config->get('external.key_path', null),
         ])->render();
 
         if (!is_dir($destinationFolder)) {
