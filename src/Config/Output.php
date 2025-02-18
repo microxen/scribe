@@ -99,9 +99,8 @@ class Output
         array         $middleware = [],
         array         $htmlAttributes = [],
         ?string       $assetsDirectory = null,
-        ?string        $autoLogin = null,
-        ?string       $keyPath = null,
-    ): array {
+    ): array
+    {
         return [
             'type' => 'external_laravel',
             'theme' => $theme->value,
@@ -111,8 +110,6 @@ class Output
                 'laravel.assets_directory' => $assetsDirectory,
                 'laravel.middleware' => $middleware,
                 'external.html_attributes' => $htmlAttributes,
-                'external.auto_login' => $autoLogin,
-                'external.key_path' => $keyPath,
             ],
         ];
     }
