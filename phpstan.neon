@@ -1,11 +1,16 @@
 parameters:
-    level: 5
+    level: 6
     reportUnmatchedIgnoredErrors: true
     inferPrivatePropertyTypeFromConstructor: true
     ignoreErrors:
-        - '#Call to an undefined method Illuminate\\Routing\\Route::versions\(\).#'
+        - identifier: missingType.iterableValue
+        - identifier: missingType.return
+        - identifier: missingType.parameter
+        - identifier: missingType.generics
+        - identifier: missingType.property
+          path: src\Tools\Globals.php
+        - identifier: argument.templateType
         - '#Call to an undefined method ReflectionType::getName\(\).#'
-        - '#.+Dingo.+#'
         - '#Call to an undefined method Illuminate\\Contracts\\Filesystem\\Filesystem::path\(\)#'
         - '#Call to an undefined method Illuminate\\Contracts\\Foundation\\Application::forgetInstance\(\)#'
         - '#Access to an undefined property Illuminate\\Support\\HigherOrderCollectionProxy#'

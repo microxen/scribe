@@ -10,6 +10,7 @@ use Knuckles\Camel\Camel;
 use Knuckles\Scribe\GroupedEndpoints\GroupedEndpointsFactory;
 use Knuckles\Scribe\Matching\RouteMatcherInterface;
 use Knuckles\Scribe\Scribe;
+use Knuckles\Scribe\Tools\ConfigDiffer;
 use Knuckles\Scribe\Tools\ConsoleOutputUtils as c;
 use Knuckles\Scribe\Tools\DocumentationConfig;
 use Knuckles\Scribe\Tools\ErrorHandlingUtils as e;
@@ -28,7 +29,7 @@ class GenerateDocumentation extends Command
                             {--scribe-dir= : Specify the directory where Scribe stores its intermediate output and cache. Defaults to `.<config_file>`}
     ";
 
-    protected $description = 'Generate API documentation from your Laravel/Dingo routes.';
+    protected $description = 'Generate API documentation from your Laravel routes.';
 
     protected DocumentationConfig $docConfig;
 
@@ -67,7 +68,9 @@ class GenerateDocumentation extends Command
         $writer = app(Writer::class, ['config' => $this->docConfig, 'paths' => $this->paths]);
         $writer->writeDocs($groupedEndpoints);
 
-        $this->upgradeConfigFileIfNeeded();
+        // Retiring the upgrade check for now. It sort of works, but is less helpful with the new config objects.
+        // It's also less useful, since the config file is no longer changing as frequently.
+        // $this->upgradeConfigFileIfNeeded();
 
         $this->sayGoodbye(errored: $groupedEndpointsInstance->hasEncounteredErrors());
     }
@@ -165,41 +168,32 @@ class GenerateDocumentation extends Command
 
         $this->info("Checking for any pending upgrades to your config file...");
         try {
-            if (!$this->laravel['files']->exists(
-                $this->laravel->configPath($this->paths->configFileName())
-            )
-            ) {
-                $this->info("No config file to upgrade.");
-                return;
-            }
+            $defaultConfig = require __DIR__."/../../config/scribe.php";
+            $ignore = ['example_languages', 'routes', 'description', 'auth.extra_info', "intro_text", "groups", "database_connections_to_transact"];
+            $asList = ['strategies.*', "examples.models_source"];
+            $differ = new ConfigDiffer(original: $this->docConfig->data, changed: $defaultConfig, ignorePaths: $ignore, asList: $asList);
 
-            $upgrader = Upgrader::ofConfigFile(
-                userOldConfigRelativePath: "config/{$this->paths->configFileName()}",
-                sampleNewConfigAbsolutePath: __DIR__ . '/../../config/scribe.php'
-            )
-                ->dontTouch(
-                    'routes', 'example_languages', 'database_connections_to_transact', 'strategies', 'laravel.middleware',
-                    'postman.overrides', 'openapi.overrides', 'groups', 'examples.models_source', 'external.html_attributes'
-                );
-            $changes = $upgrader->dryRun();
-            if (!empty($changes)) {
+            $diff = $differ->getDiff();
+            // Remove items the user has set
+            $realDiff = [];
+            foreach ($diff as $key => $value) {
+                if (is_null($this->docConfig->get($key))) {
+                    $realDiff[$key] = $value;
+                }
+            }
+            if (!empty($realDiff)) {
                 $this->newLine();
 
-                $this->warn("You're using an updated version of Scribe, which added new items to the config file.");
-                $this->info("Here are the changes:");
-                foreach ($changes as $change) {
-                    $this->info($change["description"]);
+                $this->warn("You're using an updated version of Scribe, which may have added new items to the config file.");
+                $this->info("Here's what is different:");
+                foreach ($realDiff as $key => $item) {
+                    $this->line("$key --now defaults to-> $item");
                 }
 
                 if (!$this->input->isInteractive()) {
-                    $this->info("Run `php artisan scribe:upgrade` from an interactive terminal to update your config file automatically.");
-                    $this->info(sprintf("Or see the full changelog at: https://github.com/knuckleswtf/scribe/blob/%s/CHANGELOG.md,", Scribe::VERSION));
+                    $this->info(sprintf("To upgrade, see the full changelog at: https://github.com/knuckleswtf/scribe/blob/%s/CHANGELOG.md,", Scribe::VERSION));
+                    $this->info("And config reference at https://scribe.knuckles.wtf/laravel/reference/config");
                     return;
-                }
-
-                if ($this->confirm("Let's help you update your config file. Accept changes?")) {
-                    $upgrader->upgrade();
-                    $this->info(sprintf("✔ Updated. See the full changelog: https://github.com/knuckleswtf/scribe/blob/%s/CHANGELOG.md", Scribe::VERSION));
                 }
             }
         } catch (\Throwable $e) {

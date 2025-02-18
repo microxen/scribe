@@ -14,9 +14,7 @@ use Knuckles\Scribe\Tools\DocumentationConfig;
 
 class ExtractorTest extends BaseLaravelTest
 {
-    protected Extractor $extractor;
-
-    protected $config = [
+    protected array $config = [
         'strategies' => [
             'metadata' => [
                 Strategies\Metadata\GetFromDocBlocks::class,
@@ -30,7 +28,6 @@ class ExtractorTest extends BaseLaravelTest
                 Strategies\QueryParameters\GetFromQueryParamTag::class,
             ],
             'headers' => [
-                Strategies\Headers\GetFromRouteRules::class,
                 Strategies\Headers\GetFromHeaderTag::class,
             ],
             'bodyParameters' => [
@@ -45,16 +42,6 @@ class ExtractorTest extends BaseLaravelTest
             ],
         ],
     ];
-
-    /**
-     * Setup the test environment.
-     */
-    public function setUp(): void
-    {
-        parent::setUp();
-
-        $this->extractor = $this->makeExtractor($this->config);
-    }
 
     /** @test */
     public function clean_can_properly_parse_array_keys()
@@ -133,7 +120,7 @@ class ExtractorTest extends BaseLaravelTest
     public function does_not_generate_values_for_excluded_params_and_excludes_them_from_clean_params()
     {
         $route = $this->createRouteOldSyntax('POST', '/api/test', 'withExcludedExamples');
-        $parsed = $this->extractor->processRoute($route)->toArray();
+        $parsed = $this->process($route)->toArray();
         $cleanBodyParameters = $parsed['cleanBodyParameters'];
         $cleanQueryParameters = $parsed['cleanQueryParameters'];
         $bodyParameters = $parsed['bodyParameters'];
@@ -166,103 +153,119 @@ class ExtractorTest extends BaseLaravelTest
     public function can_parse_route_methods()
     {
         $route = $this->createRouteOldSyntax('GET', '/get', 'withEndpointDescription');
-        $parsed = $this->extractor->processRoute($route);
+        $parsed = $this->process($route);
         $this->assertEquals(['GET'], $parsed->httpMethods);
 
         $route = $this->createRouteOldSyntax('POST', '/post', 'withEndpointDescription');
-        $parsed = $this->extractor->processRoute($route);
+        $parsed = $this->process($route);
         $this->assertEquals(['POST'], $parsed->httpMethods);
 
         $route = $this->createRouteOldSyntax('PUT', '/put', 'withEndpointDescription');
-        $parsed = $this->extractor->processRoute($route);
+        $parsed = $this->process($route);
         $this->assertEquals(['PUT'], $parsed->httpMethods);
 
         $route = $this->createRouteOldSyntax('DELETE', '/delete', 'withEndpointDescription');
-        $parsed = $this->extractor->processRoute($route);
+        $parsed = $this->process($route);
         $this->assertEquals(['DELETE'], $parsed->httpMethods);
-    }
-
-    /** @test */
-    public function invokes_strategy_based_on_deprecated_route_apply_rules()
-    {
-        $config = $this->config;
-        $config['strategies']['responses'] = [Strategies\Responses\ResponseCalls::class];
-
-        $extractor = $this->makeExtractor($config);
-        $route = $this->createRoute('GET', '/get', 'shouldFetchRouteResponse');
-        $parsed = $extractor->processRoute($route, ['response_calls' => ['methods' => ['POST']]]);
-        $this->assertEmpty($parsed->responses);
-
-        $parsed = $extractor->processRoute($route, ['response_calls' => ['methods' => ['GET']]]);
-        $this->assertNotEmpty($parsed->responses);
     }
 
     /** @test */
     public function invokes_strategy_based_on_new_strategy_configs()
     {
         $route = $this->createRoute('GET', '/get', 'shouldFetchRouteResponse');
-        $config = $this->config;
-        $config['strategies']['responses'] = [
+        $this->config['strategies']['responses'] = [
             [
                 Strategies\Responses\ResponseCalls::class,
                 ['only' => 'POST *']
             ]
         ];
-        $extractor = $this->makeExtractor($config);
-
-        $parsed = $extractor->processRoute($route);
+        $parsed = $this->process($route);
         $this->assertEmpty($parsed->responses);
 
-        $config['strategies']['responses'] = [
+        $this->config['strategies']['responses'] = [
             [
                 Strategies\Responses\ResponseCalls::class,
                 ['only' => 'GET *']
             ]
         ];
-        $extractor = $this->makeExtractor($config);
-        $parsed = $extractor->processRoute($route);
+        $parsed = $this->process($route);
         $this->assertNotEmpty($parsed->responses);
     }
 
     /** @test */
-    public function adds_override_for_headers_based_on_deprecated_route_apply_rules()
-    {
-        $config = $this->config;
-        $config['strategies']['headers'] = [Strategies\Headers\GetFromRouteRules::class];
-
-        $extractor = $this->makeExtractor($config);
-        $route = $this->createRoute('GET', '/get', 'dummy');
-        $parsed = $extractor->processRoute($route, ['headers' => ['content-type' => 'application/json+vnd']]);
-        $this->assertArraySubset($parsed->headers, ['content-type' => 'application/json+vnd']);
-
-        $parsed = $extractor->processRoute($route);
-        $this->assertEmpty($parsed->headers);
-    }
-
-    /** @test */
-    public function adds_override_for_headers_based_on_strategy_configs()
+    public function overrides_headers_based_on_short_strategy_config()
     {
         $route = $this->createRoute('GET', '/get', 'dummy');
-        $config = $this->config;
-
-        $config['strategies']['headers'] = [Strategies\Headers\GetFromHeaderAttribute::class];
-        $extractor = $this->makeExtractor($config);
-        $parsed = $extractor->processRoute($route);
+        $this->config['strategies']['headers'] = [Strategies\Headers\GetFromHeaderAttribute::class];
+        $parsed = $this->process($route);
         $this->assertEmpty($parsed->headers);
 
         $headers = [
             'accept' => 'application/json',
             'Content-Type' => 'application/json+vnd',
         ];
-        $config['strategies']['headers'] = [
+        $this->config['strategies']['headers'] = [
             Strategies\Headers\GetFromHeaderAttribute::class,
             [
-                'override', $headers
+                'static_data', $headers
             ],
         ];
-        $extractor = $this->makeExtractor($config);
-        $parsed = $extractor->processRoute($route);
+        $parsed = $this->process($route);
         $this->assertArraySubset($parsed->headers, $headers);
+    }
+
+    /** @test */
+    public function overrides_headers_based_on_extended_strategy_config()
+    {
+        $route = $this->createRoute('GET', '/get', 'dummy');
+        $this->config['strategies']['headers'] = [Strategies\Headers\GetFromHeaderAttribute::class];
+        $parsed = $this->process($route);
+        $this->assertEmpty($parsed->headers);
+
+        $headers = [
+            'accept' => 'application/json',
+            'Content-Type' => 'application/json+vnd',
+        ];
+        $this->config['strategies']['headers'] = [
+            Strategies\Headers\GetFromHeaderAttribute::class,
+            ['static_data', ['data' => $headers, 'only' => ['GET *']]],
+        ];
+        $parsed = $this->process($route);
+        $this->assertArraySubset($parsed->headers, $headers);
+
+        $this->config['strategies']['headers'] = [
+            Strategies\Headers\GetFromHeaderAttribute::class,
+            ['static_data', ['data' => $headers, 'only' => [], 'except' => ['GET *']]],
+        ];
+        $parsed = $this->process($route);
+        $this->assertEmpty($parsed->headers);
+    }
+
+    /** @test */
+    public function overrides_headers_based_on_full_strategy_config()
+    {
+        $route = $this->createRoute('GET', '/get', 'dummy');
+        $this->config['strategies']['headers'] = [Strategies\Headers\GetFromHeaderAttribute::class];
+        $parsed = $this->process($route);
+        $this->assertEmpty($parsed->headers);
+
+        $headers = [
+            'accept' => 'application/json',
+            'Content-Type' => 'application/json+vnd',
+        ];
+        $this->config['strategies']['headers'] = [
+            Strategies\Headers\GetFromHeaderAttribute::class,
+            Strategies\StaticData::withSettings(only: ['GET *'], data: $headers),
+        ];
+        $parsed = $this->process($route);
+        $this->assertArraySubset($parsed->headers, $headers);
+
+        $this->config['strategies']['headers'] = [
+            Strategies\Headers\GetFromHeaderAttribute::class,
+            Strategies\StaticData::withSettings(except: ['GET *'], data: $headers),
+        ];
+        $parsed = $this->process($route);
+        $this->assertEmpty($parsed->headers);
     }
 
     /**
@@ -273,7 +276,7 @@ class ExtractorTest extends BaseLaravelTest
     {
         $route = $this->createRouteOldSyntax('POST', '/withAuthenticatedTag', 'withAuthenticatedTag');
         $generator = $this->makeExtractor(array_merge($this->config, $config));
-        $parsed = $generator->processRoute($route, [])->toArray();
+        $parsed = $generator->processRoute($route)->toArray();
         $this->assertNotNull($parsed[$expected['where']][$expected['name']]);
         $this->assertEquals($expected['where'], $parsed['auth'][0]);
         $this->assertEquals($expected['name'], $parsed['auth'][1]);
@@ -286,13 +289,13 @@ class ExtractorTest extends BaseLaravelTest
 
         $paramName = 'room_id';
         $results = [];
-        $results[$this->extractor->processRoute($route)->cleanBodyParameters[$paramName]] = true;
-        $results[$this->extractor->processRoute($route)->cleanBodyParameters[$paramName]] = true;
-        $results[$this->extractor->processRoute($route)->cleanBodyParameters[$paramName]] = true;
-        $results[$this->extractor->processRoute($route)->cleanBodyParameters[$paramName]] = true;
-        $results[$this->extractor->processRoute($route)->cleanBodyParameters[$paramName]] = true;
+        $results[$this->process($route)->cleanBodyParameters[$paramName]] = true;
+        $results[$this->process($route)->cleanBodyParameters[$paramName]] = true;
+        $results[$this->process($route)->cleanBodyParameters[$paramName]] = true;
+        $results[$this->process($route)->cleanBodyParameters[$paramName]] = true;
+        $results[$this->process($route)->cleanBodyParameters[$paramName]] = true;
         // Examples should have different values
-        $this->assertNotEquals(1, count($results));
+        $this->assertNotCount(1, $results);
 
         $generator = $this->makeExtractor($this->config + ['examples' => ['faker_seed' => 12345]]);
         $results = [];
@@ -301,7 +304,7 @@ class ExtractorTest extends BaseLaravelTest
         $results[$generator->processRoute($route)->cleanBodyParameters[$paramName]] = true;
         $results[$generator->processRoute($route)->cleanBodyParameters[$paramName]] = true;
         // Examples should have same values
-        $this->assertEquals(1, count($results));
+        $this->assertCount(1, $results);
     }
 
     /** @test */
@@ -309,7 +312,7 @@ class ExtractorTest extends BaseLaravelTest
     {
         $route = $this->createRoute('GET', '/api/array/test', 'withEndpointDescription');
 
-        $parsed = $this->extractor->processRoute($route);
+        $parsed = $this->process($route);
 
         $this->assertSame('Example title.', $parsed->metadata->title);
         $this->assertSame("This will be the long description.\nIt can also be multiple lines long.", $parsed->metadata->description);
@@ -329,7 +332,7 @@ class ExtractorTest extends BaseLaravelTest
         $handler = fn() => 'hi';
         $route = $this->createClosureRoute('POST', '/api/closure/test', $handler);
 
-        $parsed = $this->extractor->processRoute($route);
+        $parsed = $this->process($route);
 
         $this->assertSame('A short title.', $parsed->metadata->title);
         $this->assertSame("A longer description.\nCan be multiple lines.", $parsed->metadata->description);
@@ -343,7 +346,7 @@ class ExtractorTest extends BaseLaravelTest
     public function endpoint_metadata_supports_custom_declarations()
     {
         $route = $this->createRouteOldSyntax('POST', '/api/test', 'dummy');
-        $parsed = $this->extractor->processRoute($route);
+        $parsed = $this->process($route);
         $this->assertSame('some custom metadata', $parsed->metadata->custom['myProperty']);
     }
 
@@ -351,7 +354,7 @@ class ExtractorTest extends BaseLaravelTest
     public function can_override_data_for_inherited_methods()
     {
         $route = $this->createRoute('POST', '/api/test', 'endpoint', TestParentController::class);
-        $parent = $this->extractor->processRoute($route);
+        $parent = $this->process($route);
         $this->assertSame('Parent title', $parent->metadata->title);
         $this->assertSame('Parent group name', $parent->metadata->groupName);
         $this->assertSame('Parent description', $parent->metadata->description);
@@ -361,7 +364,7 @@ class ExtractorTest extends BaseLaravelTest
         $this->assertEmpty($parent->queryParameters);
 
         $inheritedRoute = $this->createRoute('POST', '/api/test', 'endpoint', TestInheritedController::class);
-        $inherited = $this->extractor->processRoute($inheritedRoute);
+        $inherited = $this->process($inheritedRoute);
         $this->assertSame('Overridden title', $inherited->metadata->title);
         $this->assertSame('Overridden group name', $inherited->metadata->groupName);
         $this->assertSame('Parent description', $inherited->metadata->description);
@@ -373,17 +376,18 @@ class ExtractorTest extends BaseLaravelTest
         $this->assertArraySubset(["type" => "string"], $inherited->queryParameters["queryThing"]->toArray());
     }
 
-    public function createRoute(string $httpMethod, string $path, string $controllerMethod, $class = TestController::class)
+    public function createRoute(string $httpMethod, string $path, string $controllerMethod, $class = TestController::class): Route
     {
         return new Route([$httpMethod], $path, ['uses' => [$class, $controllerMethod]]);
     }
 
-    public function createRouteOldSyntax(string $httpMethod, string $path, string $controllerMethod, $class = TestController::class)
+    /** Uses the old Laravel syntax. I doubt anyone still uses it today, but no harm done. */
+    public function createRouteOldSyntax(string $httpMethod, string $path, string $controllerMethod, $class = TestController::class): Route
     {
-        return new Route([$httpMethod], $path, ['uses' => $class . "@$controllerMethod"]);
+        return new Route([$httpMethod], $path, ['uses' => "$class@$controllerMethod"]);
     }
 
-    public function createClosureRoute(string $httpMethod, string $path, callable $handler)
+    public function createClosureRoute(string $httpMethod, string $path, callable $handler): Route
     {
         return new Route([$httpMethod], $path, ['uses' => $handler]);
     }
@@ -459,9 +463,15 @@ class ExtractorTest extends BaseLaravelTest
         ];
     }
 
-    protected function makeExtractor(mixed $config): Extractor
+    protected function process(Route $route, mixed $config = null): ExtractedEndpointData
     {
-        return new Extractor(new DocumentationConfig($config));
+        $extractor = $this->makeExtractor($config);
+        return $extractor->processRoute($route);
+    }
+
+    protected function makeExtractor(mixed $config = null): Extractor
+    {
+        return new Extractor(new DocumentationConfig($config ?: $this->config));
     }
 }
 

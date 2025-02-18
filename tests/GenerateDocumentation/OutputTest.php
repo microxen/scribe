@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
-use Knuckles\Scribe\Config\Defaults;
 use Knuckles\Scribe\Tests\BaseLaravelTest;
 use Knuckles\Scribe\Tests\Fixtures\TestController;
 use Knuckles\Scribe\Tests\Fixtures\TestGroupController;
@@ -22,6 +21,7 @@ use Knuckles\Scribe\Tools\Utils;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Yaml\Yaml;
 use Knuckles\Scribe\Extracting\Strategies;
+use function Knuckles\Scribe\Config\configureStrategy;
 
 class OutputTest extends BaseLaravelTest
 {
@@ -30,32 +30,6 @@ class OutputTest extends BaseLaravelTest
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->setConfig(['strategies' => [
-            'metadata' => Defaults::metadataStrategies()->toArray(),
-            'urlParameters' => Defaults::urlParametersStrategies()->toArray(),
-            'queryParameters' => Defaults::queryParametersStrategies()->toArray(),
-            'headers' => Defaults::headersStrategies()->toArray(),
-            'bodyParameters' => Defaults::bodyParametersStrategies()->toArray(),
-            'responses' => Defaults::responsesStrategies()
-                ->configure(Strategies\Responses\ResponseCalls::withSettings(
-                    only: ['GET *'],
-                    config: [
-                        'app.env' => 'documentation',
-                        // 'app.debug' => false,
-                    ],
-                ))
-                ->toArray(),
-            'responseFields' => Defaults::responseFieldsStrategies()->toArray(),
-        ],
-        ]);
-        $this->setConfig(['database_connections_to_transact' => []]);
-        $this->setConfig(['routes.0.match.prefixes' => ['api/*']]);
-        // Skip these ones for faster tests
-        $this->setConfig(['openapi.enabled' => false]);
-        $this->setConfig(['postman.enabled' => false]);
-        // We want to have the same values for params each time
-        $this->setConfig(['examples.faker_seed' => 1234]);
 
         $factory = app(\Illuminate\Database\Eloquent\Factory::class);
         $factory->define(TestUser::class, function () {
@@ -74,42 +48,24 @@ class OutputTest extends BaseLaravelTest
         Utils::deleteDirectoryAndContents('.scribe');
     }
 
-    protected function usingLaravelTypeDocs($app)
-    {
-        $this->setConfig([
-            'type' => 'laravel',
-            'laravel.add_routes' => true,
-            'laravel.docs_url' => '/apidocs',
-        ]);
-    }
-
     /**
      * @test
-     * @define-env usingLaravelTypeDocs
      */
-    public function generates_laravel_type_output()
+    public function generates_static_type_output()
     {
         RouteFacade::post('/api/withQueryParameters', [TestController::class, 'withQueryParameters']);
+        $this->setConfig(['type' => 'static']);
         $this->setConfig(['postman.enabled' => true]);
         $this->setConfig(['openapi.enabled' => true]);
 
-        $this->generateAndExpectConsoleOutput(
-            "Wrote Blade docs to: vendor/orchestra/testbench-core/laravel/resources/views/scribe",
-            "Wrote Laravel assets to: vendor/orchestra/testbench-core/laravel/public/vendor/scribe",
-            "Wrote Postman collection to: vendor/orchestra/testbench-core/laravel/storage/app/scribe/collection.json",
-            "Wrote OpenAPI specification to: vendor/orchestra/testbench-core/laravel/storage/app/scribe/openapi.yaml",
-        );
+        $this->generateAndExpectConsoleOutput(expected: [
+            "Wrote HTML docs and assets to: public/docs/",
+            "Wrote Postman collection to: public/docs/collection.json"
+        ]);
 
         $this->assertFileExists($this->postmanOutputPath(true));
         $this->assertFileExists($this->openapiOutputPath(true));
-        $this->assertFileExists($this->bladeOutputPath());
-
-        $response = $this->get('/apidocs/');
-        $response->assertStatus(200);
-        $response = $this->get('/apidocs.postman');
-        $response->assertStatus(200);
-        $response = $this->get('/apidocs.openapi');
-        $response->assertStatus(200);
+        $this->assertFileExists($this->htmlOutputPath());
 
         unlink($this->postmanOutputPath(true));
         unlink($this->openapiOutputPath(true));
@@ -142,19 +98,12 @@ class OutputTest extends BaseLaravelTest
         if ($intermediateOutputDirectory) {
             $pathOptions["--scribe-dir"] = $intermediateOutputDirectory;
         }
-        $output = $this->generate($pathOptions);
-        $this->assertStringContainsString(
-            "Wrote Blade docs to: vendor/orchestra/testbench-core/laravel/resources/views/{$configName}", $output
-        );
-        $this->assertStringContainsString(
-            "Wrote Laravel assets to: vendor/orchestra/testbench-core/laravel/public/vendor/{$configName}", $output
-        );
-        $this->assertStringContainsString(
-            "Wrote Postman collection to: vendor/orchestra/testbench-core/laravel/storage/app/{$configName}/collection.json", $output
-        );
-        $this->assertStringContainsString(
-            "Wrote OpenAPI specification to: vendor/orchestra/testbench-core/laravel/storage/app/{$configName}/openapi.yaml", $output
-        );
+        $this->generateAndExpectConsoleOutput($pathOptions, [
+            "Wrote Blade docs to: vendor/orchestra/testbench-core/laravel/resources/views/{$configName}",
+            "Wrote Laravel assets to: vendor/orchestra/testbench-core/laravel/public/vendor/{$configName}",
+            "Wrote Postman collection to: vendor/orchestra/testbench-core/laravel/storage/app/{$configName}/collection.json",
+            "Wrote OpenAPI specification to: vendor/orchestra/testbench-core/laravel/storage/app/{$configName}/openapi.yaml",
+        ]);
 
         $paths = collect([
             Storage::disk('local')->path("{$configName}/collection.json"),
@@ -171,6 +120,11 @@ class OutputTest extends BaseLaravelTest
     /** @test */
     public function generated_postman_collection_file_is_correct()
     {
+        if (phpversion() < 8.3) {
+            // See https://github.com/FakerPHP/Faker/issues/694
+            $this->markTestSkipped('Faker seeding changed in PHP 8.3');
+        }
+
         RouteFacade::post('/api/withBodyParametersAsArray', [TestController::class, 'withBodyParametersAsArray']);
         RouteFacade::post('/api/withFormDataParams', [TestController::class, 'withFormDataParams']);
         RouteFacade::post('/api/withBodyParameters', [TestController::class, 'withBodyParameters']);
@@ -184,15 +138,18 @@ class OutputTest extends BaseLaravelTest
             'postman.overrides' => [
                 'info.version' => '3.9.9',
             ],
-            'routes.0.apply.headers' => [
-                'Custom-Header' => 'NotSoCustom',
+            'strategies.headers' => [
+                ...config('scribe.strategies.headers'),
+                Strategies\StaticData::withSettings(data: ['Custom-Header' => 'NotSoCustom']),
             ],
         ]);
+        $this->enableResponseCalls();
 
-        $this->generateAndExpectConsoleOutput(
-            "Wrote HTML docs and assets to: public/docs/",
-            "Wrote Postman collection to: public/docs/collection.json"
-        );
+        $this->generateAndExpectConsoleOutput(expected: [
+            "Wrote Blade docs to: vendor/orchestra/testbench-core/laravel/resources/views/scribe",
+            "Wrote Laravel assets to: vendor/orchestra/testbench-core/laravel/public/vendor/scribe",
+            "Wrote Postman collection to: vendor/orchestra/testbench-core/laravel/storage/app/scribe/collection.json",
+        ]);
 
         $generatedCollection = json_decode(file_get_contents($this->postmanOutputPath()), true);
         // The Postman ID varies from call to call; erase it to make the test data reproducible.
@@ -203,8 +160,34 @@ class OutputTest extends BaseLaravelTest
     }
 
     /** @test */
+    public function generates_and_adds_routes()
+    {
+        RouteFacade::post('/api/withBodyParameters', [TestController::class, 'withBodyParameters']);
+
+        $this->setConfig([
+            'type' => 'laravel',
+            'laravel.add_routes' => true,
+            'postman.enabled' => true,
+            'openapi.enabled' => true,
+        ]);
+        $this->generate();
+
+        $response = $this->get('/docs');
+        $response->assertStatus(200);
+        $response = $this->get('/docs.postman');
+        $response->assertStatus(200);
+        $response = $this->get('/docs.openapi');
+        $response->assertStatus(200);
+    }
+
+    /** @test */
     public function generated_openapi_spec_file_is_correct()
     {
+        if (phpversion() < 8.3) {
+            // See https://github.com/FakerPHP/Faker/issues/694
+            $this->markTestSkipped('Faker seeding changed in PHP 8.3');
+        }
+
         RouteFacade::post('/api/withBodyParametersAsArray', [TestController::class, 'withBodyParametersAsArray']);
         RouteFacade::post('/api/withFormDataParams', [TestController::class, 'withFormDataParams']);
         RouteFacade::get('/api/withResponseTag', [TestController::class, 'withResponseTag']);
@@ -217,36 +200,22 @@ class OutputTest extends BaseLaravelTest
             'openapi.overrides' => [
                 'info.version' => '3.9.9',
             ],
-            'routes.0.apply.headers' => [
-                'Custom-Header' => 'NotSoCustom',
+            'strategies.headers' =>  [
+                ...config('scribe.strategies.headers'),
+                Strategies\StaticData::withSettings(data: ['Custom-Header' => 'NotSoCustom']),
             ],
         ]);
+        $this->enableResponseCalls();
 
-        $this->generateAndExpectConsoleOutput(
-            "Wrote HTML docs and assets to: public/docs/",
-            "Wrote OpenAPI specification to: public/docs/openapi.yaml"
-        );
+        $this->generateAndExpectConsoleOutput(expected: [
+            "Wrote Blade docs to: vendor/orchestra/testbench-core/laravel/resources/views/scribe",
+            "Wrote Laravel assets to: vendor/orchestra/testbench-core/laravel/public/vendor/scribe",
+            "Wrote OpenAPI specification to: vendor/orchestra/testbench-core/laravel/storage/app/scribe/openapi.yaml",
+        ]);
 
         $generatedSpec = Yaml::parseFile($this->openapiOutputPath());
         $fixtureSpec = Yaml::parseFile(__DIR__ . '/../Fixtures/openapi.yaml');
         $this->assertEquals($fixtureSpec, $generatedSpec);
-    }
-
-    /** @test */
-    public function can_append_custom_http_headers()
-    {
-        RouteFacade::get('/api/headers', [TestController::class, 'checkCustomHeaders']);
-        $this->setConfig([
-            'routes.0.apply.headers' => [
-                'Authorization' => 'customAuthToken',
-                'Custom-Header' => 'NotSoCustom',
-            ],
-        ]);
-        $this->generate();
-
-        $endpointDetails = Yaml::parseFile('.scribe/endpoints/00.yaml')['endpoints'][0];
-        $this->assertEquals("customAuthToken", $endpointDetails['headers']["Authorization"]);
-        $this->assertEquals("NotSoCustom", $endpointDetails['headers']["Custom-Header"]);
     }
 
     /** @test */
@@ -256,8 +225,7 @@ class OutputTest extends BaseLaravelTest
 
         $this->generate();
 
-        $generatedHtml = file_get_contents($this->htmlOutputPath());
-        $this->assertStringContainsString('Лорем ипсум долор сит амет', $generatedHtml);
+        $this->assertFileContainsString($this->bladeOutputPath(), 'Лорем ипсум долор сит амет');
     }
 
     /** @test */
@@ -270,7 +238,7 @@ class OutputTest extends BaseLaravelTest
 
         $this->generate();
 
-        $crawler = new Crawler(file_get_contents($this->htmlOutputPath()));
+        $crawler = new Crawler(file_get_contents($this->bladeOutputPath()));
         $headings = $crawler->filter('h1')->getIterator();
         $this->assertCount(5, $headings); // intro, auth, three groups
         [$_, $_, $firstGroup, $secondGroup, $thirdGroup] = $headings;
@@ -312,7 +280,7 @@ class OutputTest extends BaseLaravelTest
 
         $this->generate();
 
-        $crawler = new Crawler(file_get_contents($this->htmlOutputPath()));
+        $crawler = new Crawler(file_get_contents($this->bladeOutputPath()));
         $headings = $crawler->filter('h1')->getIterator();
         $this->assertCount(6, $headings); // intro, auth, four groups
         [$_, $_, $firstGroup, $secondGroup, $thirdGroup, $fourthGroup] = $headings;
@@ -371,7 +339,7 @@ class OutputTest extends BaseLaravelTest
 
         $this->generate();
 
-        $crawler = new Crawler(file_get_contents($this->htmlOutputPath()));
+        $crawler = new Crawler(file_get_contents($this->bladeOutputPath()));
         $headings = $crawler->filter('h1')->getIterator();
         $this->assertCount(6, $headings); // intro, auth, four groups
         [$_, $_, $firstGroup, $secondGroup, $thirdGroup, $fourthGroup] = $headings;
@@ -408,7 +376,6 @@ class OutputTest extends BaseLaravelTest
         RouteFacade::get('/api/action1', [TestGroupController::class, 'action1']);
         RouteFacade::get('/api/action2', [TestGroupController::class, 'action2']);
         $this->setConfig([
-            'routes.0.apply.response_calls.methods' => [],
             'groups.order' => [
                 '1. Group 1',
                 '5. Group 5',
@@ -422,7 +389,7 @@ class OutputTest extends BaseLaravelTest
 
         $this->generate();
 
-        $crawler = new Crawler(file_get_contents($this->htmlOutputPath()));
+        $crawler = new Crawler(file_get_contents($this->bladeOutputPath()));
         $headings = $crawler->filter('h1')->getIterator();
         $this->assertCount(6, $headings); // intro, auth, four groups
         [$_, $_, $firstGroup, $secondGroup, $thirdGroup, $fourthGroup] = $headings;
@@ -456,7 +423,6 @@ class OutputTest extends BaseLaravelTest
     {
         RouteFacade::get('/api/action1', [TestGroupController::class, 'action1']);
         RouteFacade::get('/api/action1b', [TestGroupController::class, 'action1b']);
-        $this->setConfig(['routes.0.apply.response_calls.methods' => []]);
 
         $this->generate();
 
@@ -489,14 +455,14 @@ class OutputTest extends BaseLaravelTest
         $group = Yaml::parseFile($firstGroupFilePath);
         $this->assertEquals('api/action1', $group['endpoints'][0]['uri']);
         $this->assertEquals(['a_param' => $extraParam], $group['endpoints'][0]['urlParameters']);
-        $this->assertStringContainsString('Some other useful stuff.', file_get_contents($authFilePath));
+        $this->assertFileContainsString($authFilePath, 'Some other useful stuff.');
 
         $this->generate(['--force' => true]);
 
         $group = Yaml::parseFile($firstGroupFilePath);
         $this->assertEquals('api/action1', $group['endpoints'][0]['uri']);
         $this->assertEquals([], $group['endpoints'][0]['urlParameters']);
-        $this->assertStringNotContainsString('Some other useful stuff.', file_get_contents($authFilePath));
+        $this->assertFileNotContainsString($authFilePath, 'Some other useful stuff.');
     }
 
     /** @test */
@@ -507,8 +473,6 @@ class OutputTest extends BaseLaravelTest
                 'addresses' => 'address:uuid',
             ]);
         });
-        $this->setConfig(['routes.0.match.prefixes' => ['*']]);
-        $this->setConfig(['routes.0.apply.response_calls.methods' => []]);
 
         $this->generate();
 
@@ -524,9 +488,6 @@ class OutputTest extends BaseLaravelTest
         RouteFacade::resource('posts', TestPostController::class)->only('update');
         RouteFacade::resource('posts.users', TestPostUserController::class)->only('update');
 
-        $this->setConfig(['routes.0.match.prefixes' => ['*']]);
-        $this->setConfig(['routes.0.apply.response_calls.methods' => []]);
-
         $this->generate();
 
         $group = Yaml::parseFile('.scribe/endpoints/00.yaml');
@@ -541,9 +502,6 @@ class OutputTest extends BaseLaravelTest
 
         RouteFacade::resource('posts', TestPostBoundInterfaceController::class)->only('update');
 
-        $this->setConfig(['routes.0.match.prefixes' => ['*']]);
-        $this->setConfig(['routes.0.apply.response_calls.methods' => []]);
-
         $this->generate();
 
         $group = Yaml::parseFile('.scribe/endpoints/00.yaml');
@@ -553,11 +511,7 @@ class OutputTest extends BaseLaravelTest
     /** @test */
     public function generates_correct_url_params_from_non_resource_routes_and_model_binding()
     {
-        RouteFacade::get('posts/{post}/users', function (TestPost $post) {
-        });
-
-        $this->setConfig(['routes.0.match.prefixes' => ['*']]);
-        $this->setConfig(['routes.0.apply.response_calls.methods' => []]);
+        RouteFacade::get('posts/{post}/users', fn (TestPost $post) => null);
 
         $this->generate();
 
@@ -571,11 +525,9 @@ class OutputTest extends BaseLaravelTest
         $this->setConfig(['routes.0.exclude' => ['*']]);
         Utils::copyDirectory(__DIR__ . '/../Fixtures/.scribe', '.scribe');
 
-        $output = $this->generate(['--no-extraction' => true]);
+        $this->generateAndExpectConsoleOutput(['--no-extraction' => true], notExpected: ["Processing route"]);
 
-        $this->assertStringNotContainsString("Processing route", $output);
-
-        $crawler = new Crawler(file_get_contents($this->htmlOutputPath()));
+        $crawler = new Crawler(file_get_contents($this->bladeOutputPath()));
         [$intro, $auth] = $crawler->filter('h1 + p')->getIterator();
         $this->assertEquals('Heyaa introduction!👋', trim($intro->firstChild->textContent));
         $this->assertEquals('This is just a test.', trim($auth->firstChild->textContent));
@@ -603,8 +555,6 @@ class OutputTest extends BaseLaravelTest
          * @bodyParam data.a_file file
          */
         RouteFacade::post('nested-file', fn() => null);
-        $this->setConfig(['routes.0.match.prefixes' => ['*']]);
-        $this->setConfig(['routes.0.apply.response_calls.methods' => []]);
 
         $this->generate();
 
@@ -618,16 +568,16 @@ class OutputTest extends BaseLaravelTest
 
     }
 
-    protected function postmanOutputPath(bool $laravelType = false): string
+    protected function postmanOutputPath(bool $staticType = false): string
     {
-        return $laravelType
-            ? Storage::disk('local')->path('scribe/collection.json') : 'public/docs/collection.json';
+        return $staticType
+            ? 'public/docs/collection.json' : Storage::disk('local')->path('scribe/collection.json');
     }
 
-    protected function openapiOutputPath(bool $laravelType = false): string
+    protected function openapiOutputPath(bool $staticType = false): string
     {
-        return $laravelType
-            ? Storage::disk('local')->path('scribe/openapi.yaml') : 'public/docs/openapi.yaml';
+        return $staticType
+            ? 'public/docs/openapi.yaml' : Storage::disk('local')->path('scribe/openapi.yaml');
     }
 
     protected function htmlOutputPath(): string
@@ -638,5 +588,15 @@ class OutputTest extends BaseLaravelTest
     protected function bladeOutputPath(): string
     {
         return View::getFinder()->find('scribe/index');
+    }
+
+    protected function enableResponseCalls(): void
+    {
+        $this->setConfig([
+            'strategies.responses' => configureStrategy(
+                config('scribe.strategies.responses'),
+                Strategies\Responses\ResponseCalls::withSettings(only: ['GET *'], except: [])
+            )
+        ]);
     }
 }

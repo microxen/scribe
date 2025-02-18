@@ -1,9 +1,10 @@
-<?php
+<?php /** @noinspection NonAsciiCharacters */
 
 namespace Knuckles\Scribe\Tests\GenerateDocumentation;
 
 use Illuminate\Support\Facades\File as FileFacade;
 use Illuminate\Support\Facades\Route as RouteFacade;
+use Illuminate\Support\Facades\Storage;
 use Knuckles\Scribe\Commands\GenerateDocumentation;
 use Knuckles\Scribe\Scribe;
 use Knuckles\Scribe\Tests\BaseLaravelTest;
@@ -23,14 +24,6 @@ class BehavioursTest extends BaseLaravelTest
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->setConfig([
-            'database_connections_to_transact' => [],
-            'routes.0.match.prefixes' => ['api/*'],
-            // Skip these for faster tests
-            'openapi.enabled' => false,
-            'postman.enabled' => false,
-        ]);
 
         $factory = app(\Illuminate\Database\Eloquent\Factory::class);
         $factory->define(TestUser::class, function () {
@@ -55,17 +48,17 @@ class BehavioursTest extends BaseLaravelTest
         RouteFacade::get('/api/test', [TestController::class, 'withEndpointDescription']);
         RouteFacade::get('/api/array/test', [TestController::class, 'withEndpointDescription']);
 
-        $this->generateAndExpectConsoleOutput(
+        $this->generateAndExpectConsoleOutput(expected: [
             'Processed route: [GET] api/test',
             'Processed route: [GET] api/array/test'
-        );
+        ]);
     }
 
     /** @test */
     public function processes_head_routes_as_head_not_get()
     {
         RouteFacade::addRoute('HEAD', '/api/test', [TestController::class, 'withEndpointDescription']);
-        $this->generateAndExpectConsoleOutput('Processed route: [HEAD] api/test');
+        $this->generateAndExpectConsoleOutput(expected: ['Processed route: [HEAD] api/test']);
     }
 
     /**
@@ -74,37 +67,12 @@ class BehavioursTest extends BaseLaravelTest
      */
     public function can_process_closure_routes()
     {
-        RouteFacade::get('/api/closure', function () {
-            return 'hi';
-        });
-        $this->generateAndExpectConsoleOutput('Processed route: [GET] api/closure');
-    }
-
-    /**
-     * @group dingo
-     * @test
-     */
-    public function can_process_routes_on_dingo()
-    {
-        $api = app(\Dingo\Api\Routing\Router::class);
-        $api->version('v1', function ($api) {
-            $api->get('/closure', function () {
-                return 'foo';
-            });
-            $api->get('/test', [TestController::class, 'withEndpointDescription']);
-        });
-
-        $this->setConfig(['routes.0.match.prefixes' => ['*']]);
-        $this->setConfig(['routes.0.match.versions' => ['v1']]);
-
-        $this->generateAndExpectConsoleOutput(
-            'Processed route: [GET] closure',
-            'Processed route: [GET] test'
-        );
+        RouteFacade::get('/api/closure', fn() => 'hi');
+        $this->generateAndExpectConsoleOutput(expected: ['Processed route: [GET] api/closure']);
     }
 
     /** @test */
-    public function calls_afterGenerating_hook()
+    public function calls_afterGenerating_hook_with_correct_paths()
     {
         $paths = [];
         Scribe::afterGenerating(function (array $outputPaths) use (&$paths) {
@@ -112,17 +80,45 @@ class BehavioursTest extends BaseLaravelTest
         });
         RouteFacade::get('/api/test', [TestController::class, 'withEndpointDescription']);
 
+
+        $this->setConfig([
+            'type' => 'laravel',
+            'laravel.add_routes' => true,
+            'laravel.docs_url' => '/apidocs',
+            'postman.enabled' => true,
+            'openapi.enabled' => true,
+        ]);
         $this->generate();
 
+        $ノ = DIRECTORY_SEPARATOR; // Cross-platform
         $this->assertEquals([
-            'html' => realpath('public/docs/index.html'),
-            'blade' => null,
-            'postman' => realpath('public/docs/collection.json') ?: null,
-            'openapi' => realpath('public/docs/openapi.yaml') ?: null,
+            'html' => null,
+            'blade' => resource_path("views{$ノ}scribe{$ノ}index.blade.php"),
+            'postman' => Storage::disk('local')->path("scribe{$ノ}collection.json"),
+            'openapi' => Storage::disk('local')->path("scribe{$ノ}openapi.yaml"),
             'assets' => [
-                'js' => realpath('public/docs/js'),
-                'css' => realpath('public/docs/css'),
-                'images' => realpath('public/docs/images'),
+                'js' => public_path("vendor{$ノ}scribe{$ノ}js"),
+                'css' => public_path("vendor{$ノ}scribe{$ノ}css"),
+                'images' => public_path("vendor{$ノ}scribe{$ノ}images"),
+            ],
+        ], $paths);
+
+        $this->setConfig([
+            'type' => 'static',
+            'static.output_path' => 'public/docs',
+            'postman.enabled' => false,
+            'openapi.enabled' => false,
+        ]);
+        $this->generate();
+        $this->assertEquals([
+            'html' => realpath("public{$ノ}docs{$ノ}index.html"),
+            'blade' => null,
+            'postman' => null,
+            'openapi' => null,
+            'assets' => [
+                'js' => realpath("public{$ノ}docs{$ノ}js"),
+                'css' => realpath("public{$ノ}docs{$ノ}css"),
+                'images' => realpath("public{$ノ}docs{$ノ}images"),
             ],
         ], $paths);
 
@@ -134,7 +130,7 @@ class BehavioursTest extends BaseLaravelTest
     {
         $commandInstance = null;
 
-        Scribe::bootstrap(function (GenerateDocumentation $command) use (&$commandInstance){
+        Scribe::bootstrap(function (GenerateDocumentation $command) use (&$commandInstance) {
             $commandInstance = $command;
         });
 
@@ -154,33 +150,34 @@ class BehavioursTest extends BaseLaravelTest
         RouteFacade::get('/api/skipClass', TestIgnoreThisController::class . '@dummy');
         RouteFacade::get('/api/test', [TestController::class, 'withEndpointDescription']);
 
-        $this->generateAndExpectConsoleOutput(
+        $this->generateAndExpectConsoleOutput(expected: [
             'Skipping route: [GET] api/skip',
             'Skipping route: [GET] api/skipClass',
             'Processed route: [GET] api/test'
-        );
+        ]);
     }
 
     /** @test */
     public function warns_of_nonexistent_response_files()
     {
         RouteFacade::get('/api/non-existent', [TestController::class, 'withNonExistentResponseFile']);
-        $this->generateAndExpectConsoleOutput('@responseFile i-do-not-exist.json does not exist');
+        $this->generateAndExpectConsoleOutput(expected: ['@responseFile i-do-not-exist.json does not exist']);
     }
 
     /** @test */
     public function can_parse_resource_routes()
     {
-        RouteFacade::resource('/api/users', TestResourceController::class)
-            ->only(['index', 'store']);
+        RouteFacade::resource('/api/users', TestResourceController::class)->only(['index', 'store']);
 
-        $output = $this->generate();
-
-        $this->assertStringContainsString('Processed route: [GET] api/users', $output);
-        $this->assertStringContainsString('Processed route: [POST] api/users', $output);
-
-        $this->assertStringNotContainsString('Processed route: [PUT,PATCH] api/users/{user}', $output);
-        $this->assertStringNotContainsString('Processed route: [DELETE] api/users/{user}', $output);
+        $this->generateAndExpectConsoleOutput(
+            expected: [
+                'Processed route: [GET] api/users',
+                'Processed route: [POST] api/users'
+            ],
+            notExpected: [
+                'Processed route: [PUT,PATCH] api/users/{user}',
+                'Processed route: [DELETE] api/users/{user}',]
+        );
     }
 
     /** @test */
@@ -188,10 +185,10 @@ class BehavioursTest extends BaseLaravelTest
     {
         RouteFacade::resource('/api/users', TestPartialResourceController::class);
 
-        $this->generateAndExpectConsoleOutput(
+        $this->generateAndExpectConsoleOutput(expected: [
             'Processed route: [GET] api/users',
             'Processed route: [PUT,PATCH] api/users/{user}'
-        );
+        ]);
     }
 
     /** @test */
@@ -199,7 +196,7 @@ class BehavioursTest extends BaseLaravelTest
     {
         RouteFacade::get('/api/action1', TestGroupController::class . '@action1');
 
-        $this->setConfig(['static.output_path' => 'static/docs']);
+        $this->setConfig(['type' => 'static', 'static.output_path' => 'static/docs']);
         $this->assertFileDoesNotExist('static/docs/index.html');
 
         $this->generate();
@@ -210,34 +207,12 @@ class BehavioursTest extends BaseLaravelTest
     }
 
     /** @test */
-    public function checks_for_upgrades_after_run_unless_disabled()
-    {
-        file_put_contents("config/scribe_test.php", str_replace("'logo' => false,", "", file_get_contents("config/scribe.php")));
-        config(["scribe_test" => require "config/scribe_test.php"]);
-
-        $output = $this->artisan('scribe:generate', ['--config' => 'scribe_test']);
-
-        if (! FileFacade::exists(config_path("scribe.php"))) {
-            $this->assertStringContainsString("No config file to upgrade.", $output);
-        } else {
-            $this->assertStringContainsString("Checking for any pending upgrades to your config file...", $output);
-            $this->assertStringContainsString("`logo` will be added", $output);
-        }
-
-        $output = $this->artisan('scribe:generate', ['--config' => 'scribe_test', '--no-upgrade-check' => true]);
-        $this->assertStringNotContainsString("Checking for any pending upgrades to your config file...", $output);
-
-        unlink("config/scribe_test.php");
-        Utils::deleteDirectoryAndContents(".scribe_test");
-    }
-
-    /** @test */
     public function can_generate_with_apiresource_tag_but_without_apiresourcemodel_tag()
     {
         RouteFacade::get('/api/test', [TestController::class, 'withEmptyApiResource']);
-        $this->generateAndExpectConsoleOutput(
+        $this->generateAndExpectConsoleOutput(expected: [
             "Couldn't detect an Eloquent API resource model",
             'Processed route: [GET] api/test'
-        );
+        ]);
     }
 }

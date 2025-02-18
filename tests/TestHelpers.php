@@ -28,19 +28,30 @@ trait TestHelpers
         );
     }
 
-    protected function generateAndExpectConsoleOutput(string ...$expectedOutput): void
+    protected function generateAndExpectConsoleOutput(
+        array $options = [], array $expected = [], array $notExpected = []
+    ): void
     {
-        $output = $this->generate();
+        $output = $this->generate($options);
 
-        foreach ($expectedOutput as $expected) {
-            $this->assertStringContainsString($expected, $output);
+        foreach ($expected as $string) {
+            $this->assertStringContainsString($string, $output);
+        }
+
+        foreach ($notExpected as $string) {
+            $this->assertStringNotContainsString($string, $output);
         }
     }
 
     protected function assertFileContainsString(string $filePath, string $string)
     {
-        $this->assertFileExists($filePath);
         $fileContents = file_get_contents($filePath);
         $this->assertStringContainsString($string, $fileContents);
+    }
+
+    protected function assertFileNotContainsString(string $filePath, string $string)
+    {
+        $fileContents = file_get_contents($filePath);
+        $this->assertStringNotContainsString($string, $fileContents);
     }
 }

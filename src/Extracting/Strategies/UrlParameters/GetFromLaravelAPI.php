@@ -17,10 +17,6 @@ class GetFromLaravelAPI extends Strategy
 
     public function __invoke(ExtractedEndpointData $endpointData, array $routeRules = []): ?array
     {
-        if (Utils::isLumen()) {
-            return (new GetFromLumenAPI($this->config))($endpointData, $routeRules);
-        };
-
         $parameters = [];
 
         $path = $endpointData->uri;

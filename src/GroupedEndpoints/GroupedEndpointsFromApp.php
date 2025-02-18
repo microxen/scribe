@@ -68,7 +68,7 @@ class GroupedEndpointsFromApp implements GroupedEndpointsContract
             $cachedEndpoints = Camel::loadEndpointsToFlatPrimitivesArray(static::$cacheDir);
         }
 
-        $routes = $routeMatcher->getRoutes($this->docConfig->get('routes', []), $this->docConfig->get('router'));
+        $routes = $routeMatcher->getRoutes($this->docConfig->get('routes', []));
         $endpoints = $this->extractEndpointsInfoFromLaravelApp($routes, $cachedEndpoints, $latestEndpointsData);
 
         $groupedEndpoints = collect($endpoints)->groupBy('metadata.groupName')->map(function (Collection $endpointsInGroup) {
@@ -190,7 +190,7 @@ class GroupedEndpointsFromApp implements GroupedEndpointsContract
     protected function writeEndpointsToDisk(array $grouped): void
     {
         Utils::deleteFilesMatching(static::$camelDir, function ($file) {
-            /** @var $file array|\League\Flysystem\StorageAttributes */
+            /** @var array|\League\Flysystem\StorageAttributes $file */
             return !Str::startsWith(basename($file['path']), 'custom.');
         });
         Utils::deleteDirectoryAndContents(static::$cacheDir);

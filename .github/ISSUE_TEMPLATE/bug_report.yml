@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Before submitting an issue, first try updating your Scribe version and other common solutions mentioned in the [troubleshooting guide](https://scribe.knuckles.wtf/laravel/troubleshooting).
-        
+
         Also search [the docs](https://scribe.knuckles.wtf/laravel) and [existing issues](https://github.com/knuckleswtf/scribe/issues?q=is%3Aissue+) (both open and closed) for any related problems or solutions.
   - type: input
     id: scribe_version
@@ -26,21 +26,12 @@ body:
       placeholder: "example: 8.1"
     validations:
       required: true
-  - type: dropdown
-    id: framework
-    attributes:
-      label: Framework
-      options:
-      - Laravel
-      - Lumen
-    validations:
-      required: true
   - type: input
     id: version
     attributes:
-      label: Framework version
+      label: Laravel version
       description: |
-        Run `composer show -v | grep laravel/framework` or `composer show -v | grep laravel/lumen-framework`
+        Run `composer show -v | grep laravel/framework`
       placeholder: "example: 10.0.1"
     validations:
       required: true

@@ -18,7 +18,7 @@ class DiffConfig extends Command
 
         $ignore = ['example_languages', 'routes', 'description', 'auth.extra_info', "intro_text", "groups"];
         $asList = ['strategies.*', "examples.models_source"];
-        $differ = new ConfigDiffer($defaultConfig, $usersConfig, ignorePaths: $ignore, asList: $asList);
+        $differ = new ConfigDiffer(original: $defaultConfig, changed: $usersConfig, ignorePaths: $ignore, asList: $asList);
 
         $diff = $differ->getDiff();
 

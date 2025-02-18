@@ -95,6 +95,12 @@ class ExtractedEndpointData extends BaseDTO
         };
     }
 
+    /**
+     * @param Route $route
+     * @param array $extras Only used for quick overrides in tests
+     * @return self
+     * @throws \ReflectionException
+     */
     public static function fromRoute(Route $route, array $extras = []): self
     {
         $httpMethods = self::getMethods($route);

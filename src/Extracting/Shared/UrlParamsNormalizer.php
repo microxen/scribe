@@ -165,11 +165,7 @@ class UrlParamsNormalizer
      */
     protected static function getInlineRouteKey(Route $route, string $paramName): ?string
     {
-        // Was added in Laravel 7.x
-        if (method_exists($route, 'bindingFieldFor')) {
-            return $route->bindingFieldFor($paramName);
-        }
-        return null;
+        return $route->bindingFieldFor($paramName);
     }
 
     /**

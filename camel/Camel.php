@@ -83,7 +83,7 @@ class Camel
 
         $userDefinedEndpoints = [];
         foreach ($contents as $object) {
-            // Flysystem v1 had items as arrays; v2 has objects.
+            // todo Flysystem v1 had items as arrays; v2 has objects.
             // v2 allows ArrayAccess, but when we drop v1 support (Laravel <9), we should switch to methods
             if (
                 $object['type'] == 'file'

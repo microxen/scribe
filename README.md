@@ -9,7 +9,7 @@
 
 > [v4 is out now](https://scribe.knuckles.wtf/blog/laravel-v4)! Featuring subgroups, easier sorting, and an automated upgrade command.
 
-Scribe helps you generate API documentation for humans from your Laravel/Lumen/[Dingo](https://github.com/dingo/api) codebase. See a live example at [demo.scribe.knuckles.wtf](https://demo.scribe.knuckles.wtf).
+Scribe helps you generate API documentation for humans from your Laravel codebase. See a live example at [demo.scribe.knuckles.wtf](https://demo.scribe.knuckles.wtf).
 
 ## Features
 - Useful output:

@@ -67,25 +67,6 @@ class Utils
             return $uri;
         }
 
-        if (self::isLumen()) {
-            $boundUri = '';
-            $possibilities = (new Std)->parse($uri);
-            // See https://github.com/nikic/FastRoute#overriding-the-route-parser-and-dispatcher
-            $possibilityWithAllSegmentsPresent = end($possibilities);
-            foreach ($possibilityWithAllSegmentsPresent as $part) {
-                if (!is_array($part)) {
-                    // It's just a path segment, not a URL parameter'
-                    $boundUri .= $part;
-                    continue;
-                }
-
-                $name = $part[0];
-                $boundUri .= $urlParameters[$name];
-            }
-
-            return $boundUri;
-        }
-
         foreach ($urlParameters as $parameterName => $example) {
             $uri = preg_replace('#\{' . $parameterName . '\??}#', $example, $uri);
         }
@@ -328,20 +309,6 @@ class Utils
         }
 
         return $factory;
-    }
-
-    public static function isLumen(): bool
-    {
-        // See https://github.com/laravel/lumen-framework/blob/99330e6ca2198e228f5894cf84d843c2a539a250/src/Application.php#L163
-        $app = app();
-        if ($app
-            && is_callable([$app, 'version'])
-            && Str::startsWith($app->version(), 'Lumen')
-        ) {
-            return true;
-        }
-
-        return false;
     }
 
     /**

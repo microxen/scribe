@@ -2,7 +2,7 @@ name: Lint
 
 on:
   push:
-    branches: [master]
+    branches: [master, vNext]
   pull_request:
 
 jobs:
@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         php:
-        - 8.1
+        - 8.3
 
     name: Lint code (PHP ${{ matrix.php }})
 
@@ -25,7 +25,7 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pdo, sqlite, pdo_sqlite, bcmath, intl, gd
 
       - name: Cache composer dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}

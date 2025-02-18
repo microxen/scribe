@@ -2,8 +2,6 @@
 
 namespace Knuckles\Scribe\Extracting\Strategies\Responses;
 
-use Dingo\Api\Dispatcher;
-use Dingo\Api\Routing\Route as DingoRoute;
 use Exception;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
@@ -32,12 +30,8 @@ class ResponseCalls extends Strategy
 
     public function __invoke(ExtractedEndpointData $endpointData, array $settings = []): ?array
     {
-        return $this->makeResponseCallIfConditionsPass($endpointData, $settings);
-    }
-
-    public function makeResponseCallIfConditionsPass(ExtractedEndpointData $endpointData, array $settings): ?array
-    {
-        if (!$this->shouldMakeApiCall($endpointData)) {
+        // Don't attempt a response call if there are already successful responses
+        if ($endpointData->responses->hasSuccessResponse()) {
             return null;
         }
 
@@ -75,7 +69,7 @@ class ResponseCalls extends Strategy
         $hardcodedFileParams = collect($hardcodedFileParams)->map(function ($filePath) {
             $fileName = basename($filePath);
             return new UploadedFile(
-                $filePath, $fileName, mime_content_type($filePath), 0, false
+                $filePath, $fileName, mime_content_type($filePath), test: true
             );
         })->toArray();
         $fileParameters = array_merge($endpointData->fileParameters, $hardcodedFileParams);
@@ -205,47 +199,6 @@ class ResponseCalls extends Strategy
         $this->rollbackLaravelConfigChanges();
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return \Illuminate\Http\JsonResponse|mixed
-     */
-    public function callDingoRoute(Request $request, Route $route)
-    {
-        /** @var \Dingo\Api\Dispatcher $dispatcher */
-        $dispatcher = app(\Dingo\Api\Dispatcher::class);
-
-        /** @var DingoRoute $route */
-        $dispatcher->version($route->versions()[0]);
-        foreach ($request->headers as $header => $value) {
-            $dispatcher->header($header, $value);
-        }
-
-        // set domain and body parameters
-        $dispatcher->on($request->header('SERVER_NAME'))
-            ->with($request->request->all());
-
-        // set URL and query parameters
-        $uri = $request->getRequestUri();
-        $query = $request->getQueryString();
-        if (!empty($query)) {
-            $uri .= "?$query";
-        }
-
-        $response = call_user_func_array(
-            [$dispatcher, strtolower($request->method())],
-            [$uri]
-        );
-
-        // the response from the Dingo dispatcher is the 'raw' response from the controller,
-        // so we have to ensure it's JSON first
-        if (!$response instanceof Response) {
-            $response = response()->json($response);
-        }
-
-        return $response;
-    }
-
     public function getMethods(Route $route): array
     {
         return array_diff($route->methods(), ['HEAD']);
@@ -287,49 +240,22 @@ class ResponseCalls extends Strategy
      *
      * @param Route $route
      *
-     * @return \Illuminate\Http\JsonResponse|mixed|\Symfony\Component\HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\Response
      * @throws Exception
      */
     protected function makeApiCall(Request $request, Route $route)
     {
-        if ($this->config->get('router') == 'dingo') {
-            $response = $this->callDingoRoute($request, $route);
-        } else {
-            $response = $this->callLaravelOrLumenRoute($request);
-        }
-
-        return $response;
+        return $this->callLaravelRoute($request);
     }
 
-    protected function callLaravelOrLumenRoute(Request $request): \Symfony\Component\HttpFoundation\Response
+    protected function callLaravelRoute(Request $request): \Symfony\Component\HttpFoundation\Response
     {
-        // Confirm we're running in Laravel, not Lumen
-        if (app()->bound(Kernel::class)) {
-            /** @var \Illuminate\Foundation\Http\Kernel $kernel */
-            $kernel = app(Kernel::class);
-            $response = $kernel->handle($request);
-            $kernel->terminate($request, $response);
-        } else {
-            // Handle the request using the Lumen application.
-            /** @var \Laravel\Lumen\Application $app */
-            $app = app();
-            $app->bind('request', function () use ($request) {
-                return $request;
-            });
-            $response = $app->handle($request);
-        }
+        /** @var \Illuminate\Foundation\Http\Kernel $kernel */
+        $kernel = app(Kernel::class);
+        $response = $kernel->handle($request);
+        $kernel->terminate($request, $response);
 
         return $response;
-    }
-
-    protected function shouldMakeApiCall(ExtractedEndpointData $endpointData): bool
-    {
-        // Don't attempt a response call if there are already successful responses
-        if ($endpointData->responses->hasSuccessResponse()) {
-            return false;
-        }
-
-        return true;
     }
 
     /**
@@ -375,7 +301,7 @@ class ResponseCalls extends Strategy
      * @return array
      */
     public static function withSettings(
-        array $only = ['GET *'],
+        array $only = [],
         array $except = [],
         array $config = [],
         array $queryParams = [],
@@ -386,6 +312,15 @@ class ResponseCalls extends Strategy
         array $cookies = [],
     ): array
     {
-        return static::wrapWithSettings(...get_defined_vars());
+        return static::wrapWithSettings(
+            only: $only,
+            except: $except,
+            otherSettings: compact(
+                'config',
+                'queryParams',
+                'bodyParams',
+                'fileParams',
+                'cookies',
+            ));
     }
 }

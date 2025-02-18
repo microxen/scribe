@@ -7,7 +7,6 @@ class Routes
     public static function match(
         array $prefixes = ['api/*'],
         array $domains = ['*'],
-        array $dingoVersions = ['v1'],
         array $alwaysInclude = [],
         array $alwaysExclude = [],
     ): static
@@ -18,7 +17,6 @@ class Routes
     public function __construct(
         public array $prefixes = [],
         public array $domains = [],
-        public array $dingoVersions = [],
         public array $alwaysInclude = [],
         public array $alwaysExclude = []
     )

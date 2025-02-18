@@ -9,8 +9,8 @@ class ConfigDiffer
 {
 
     public function __construct(
-        protected array $defaultConfig,
-        protected array $usersConfig,
+        protected array $original,
+        protected array $changed,
         protected array $ignorePaths = [],
         protected array $asList = [],
     )
@@ -19,7 +19,7 @@ class ConfigDiffer
 
     public function getDiff()
     {
-        return $this->recursiveItemDiff($this->defaultConfig, $this->usersConfig);
+        return $this->recursiveItemDiff($this->original, $this->changed);
     }
 
     protected function recursiveItemDiff($old, $new, $prefix = '')

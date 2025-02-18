@@ -108,16 +108,11 @@ class HtmlWriter
 
     public function getMetadata(): array
     {
-        // todo remove 'links' in future
-        $links = []; // Left for backwards compat
-
         // NB:These paths are wrong for laravel type but will be set correctly by the Writer class
         if ($this->config->get('postman.enabled', true)) {
-            $links[] = "<a href=\"{$this->assetPathPrefix}collection.json\">".u::trans("scribe::links.postman")."</a>";
             $postmanCollectionUrl = "{$this->assetPathPrefix}collection.json";
         }
         if ($this->config->get('openapi.enabled', false)) {
-            $links[] = "<a href=\"{$this->assetPathPrefix}openapi.yaml\">".u::trans("scribe::links.openapi")."</a>";
             $openApiSpecUrl = "{$this->assetPathPrefix}openapi.yaml";
         }
 
@@ -142,7 +137,6 @@ class HtmlWriter
             'try_it_out' => $this->config->get('try_it_out'),
             "postman_collection_url" => $postmanCollectionUrl ?? null,
             "openapi_spec_url" => $openApiSpecUrl ?? null,
-            'links' => array_merge($links, ['<a href="http://github.com/knuckleswtf/scribe">Documentation powered by Scribe ✍</a>']),
         ];
     }
 

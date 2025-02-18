@@ -8,17 +8,32 @@ use Attribute;
 class Group
 {
     public function __construct(
-        public string $name,
+        public mixed $name,
         public ?string $description = '',
         /** You can use the separate #[Authenticated] attribute, or pass authenticated: false to this. */
         public ?bool   $authenticated = null,
     ){
     }
 
+    protected function getName(): string
+    {
+        if (is_string($this->name)) {
+            return $this->name;
+        }
+
+        if (interface_exists('BackedEnum') && is_a($this->name, 'BackedEnum')) {
+            return $this->name->value;
+        }
+
+        throw new \InvalidArgumentException(
+            'The name property of a group must be either a PHP Backed Enum or a string'
+        );
+    }
+
     public function toArray()
     {
         $data = [
-            "groupName" => $this->name,
+            "groupName" => $this->getName(),
             "groupDescription" => $this->description,
         ];
 

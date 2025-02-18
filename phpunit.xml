@@ -27,7 +27,7 @@
     </php>
     <testsuites>
         <testsuite name="Non-Unit Tests">
-            <directory>tests/GenerateDocumentation/OutputTest.php</directory>
+            <directory>tests/GenerateDocumentation</directory>
             <directory>tests/Strategies</directory>
         </testsuite>
         <testsuite name="Unit Tests">
