@@ -16,10 +16,9 @@
 
 <script
     id="api-reference"
-@foreach($htmlAttributes as $attribute => $value)
-    {{-- Attributes specified first override later ones --}}
-    {!! $attribute !!}="{!! $value !!}"
-@endforeach
+    @foreach($htmlAttributes as $attribute => $value)
+        {!! $attribute !!}='{!! $value !!}'
+    @endforeach
     data-url="{!! $metadata['openapi_spec_url'] !!}">
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
