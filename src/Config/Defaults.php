@@ -11,6 +11,11 @@ class Defaults
         Strategies\Metadata\GetFromMetadataAttributes::class,
     ];
 
+    public const HEADERS_STRATEGIES = [
+        Strategies\Headers\GetFromHeaderAttribute::class,
+        Strategies\Headers\GetFromHeaderTag::class,
+    ];
+
     public const URL_PARAMETERS_STRATEGIES = [
         Strategies\UrlParameters\GetFromLaravelAPI::class,
         Strategies\UrlParameters\GetFromUrlParamAttribute::class,
@@ -22,11 +27,6 @@ class Defaults
         Strategies\QueryParameters\GetFromInlineValidator::class,
         Strategies\QueryParameters\GetFromQueryParamAttribute::class,
         Strategies\QueryParameters\GetFromQueryParamTag::class,
-    ];
-
-    public const HEADERS_STRATEGIES = [
-        Strategies\Headers\GetFromHeaderAttribute::class,
-        Strategies\Headers\GetFromHeaderTag::class,
     ];
 
     public const BODY_PARAMETERS_STRATEGIES = [

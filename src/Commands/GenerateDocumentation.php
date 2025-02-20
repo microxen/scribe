@@ -3,6 +3,7 @@
 namespace Knuckles\Scribe\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -68,8 +69,7 @@ class GenerateDocumentation extends Command
         $writer = app(Writer::class, ['config' => $this->docConfig, 'paths' => $this->paths]);
         $writer->writeDocs($groupedEndpoints);
 
-        // Retiring the upgrade check for now. It sort of works, but is less helpful with the new config objects.
-        // It's also less useful, since the config file is no longer changing as frequently.
+        // Retiring the automatic upgrade check, since the config file is no longer changing as frequently.
         // $this->upgradeConfigFileIfNeeded();
 
         $this->sayGoodbye(errored: $groupedEndpointsInstance->hasEncounteredErrors());
@@ -120,7 +120,15 @@ class GenerateDocumentation extends Command
 
         // Force root URL so it works in Postman collection
         $baseUrl = $this->docConfig->get('base_url') ?? config('app.url');
-        URL::forceRootUrl($baseUrl);
+
+        /* @phpstan-ignore-next-line */
+        if (version_compare(Application::VERSION, '11.0', '>=')) {
+            // Renamed in Laravel 11
+            URL::useOrigin($baseUrl);
+        } else {
+            /* @phpstan-ignore-next-line */
+            URL::forceRootUrl($baseUrl);
+        }
 
         $this->forcing = $this->option('force');
         $this->shouldExtract = !$this->option('no-extraction');

@@ -118,36 +118,18 @@ class Utils
 
     public static function deleteDirectoryAndContents(string $dir, ?string $workingDir = null): void
     {
-        if (class_exists(LocalFilesystemAdapter::class)) {
-            // Flysystem 2+
-            $workingDir ??= getcwd();
-            $adapter = new LocalFilesystemAdapter($workingDir);
-            $fs = new Filesystem($adapter);
-            $dir = str_replace($workingDir, '', $dir);
-            $fs->deleteDirectory($dir);
-        } else {
-            // v1
-            $adapter = new \League\Flysystem\Adapter\Local($workingDir ?: getcwd());
-            $fs = new Filesystem($adapter);
-            $dir = str_replace($adapter->getPathPrefix(), '', $dir);
-            $fs->deleteDir($dir);
-        }
+        $workingDir ??= getcwd();
+        $adapter = new LocalFilesystemAdapter($workingDir);
+        $fs = new Filesystem($adapter);
+        $dir = str_replace($workingDir, '', $dir);
+        $fs->deleteDirectory($dir);
     }
 
     public static function listDirectoryContents(string $dir)
     {
-        if (class_exists(LocalFilesystemAdapter::class)) {
-            // Flysystem 2+
-            $adapter = new LocalFilesystemAdapter(getcwd());
-            $fs = new Filesystem($adapter);
-            return $fs->listContents($dir);
-        } else {
-            // v1
-            $adapter = new \League\Flysystem\Adapter\Local(getcwd()); // @phpstan-ignore-line
-            $fs = new Filesystem($adapter); // @phpstan-ignore-line
-            $dir = str_replace($adapter->getPathPrefix(), '', $dir); // @phpstan-ignore-line
-            return $fs->listContents($dir);
-        }
+        $adapter = new LocalFilesystemAdapter(getcwd());
+        $fs = new Filesystem($adapter);
+        return $fs->listContents($dir);
     }
 
     public static function copyDirectory(string $src, string $dest): void
@@ -342,6 +324,7 @@ class Utils
 
         $translation = trans($key, $replace);
 
+        /* @phpstan-ignore-next-line */
         if ($translation === $key || $translation === null) {
             $translation = trans($key, $replace, 'en');
         }

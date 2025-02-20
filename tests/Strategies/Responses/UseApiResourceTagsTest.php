@@ -833,18 +833,12 @@ class UseApiResourceTagsTest extends BaseLaravelTest
                         "prev" => null,
                         "next" => "/?cursor={$nextCursor}",
                     ],
-                    "meta" => match (version_compare(Application::VERSION, '9.0', '>=')) {
-                        false => [
-                            "path" => '/',
-                            'per_page' => '1',
-                        ],
-                        true => [
-                            "path" => '/',
-                            'per_page' => 1,
-                            'next_cursor' => $nextCursor,
-                            'prev_cursor' => null,
-                        ]
-                    },
+                    "meta" => [
+                        "path" => '/',
+                        'per_page' => 1,
+                        'next_cursor' => $nextCursor,
+                        'prev_cursor' => null,
+                    ],
                 ]),
             ],
         ], $results);

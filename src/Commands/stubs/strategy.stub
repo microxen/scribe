@@ -19,13 +19,13 @@ class DummyClass extends Strategy
      * @link https://scribe.knuckles.wtf/laravel/advanced/plugins
      * @param ExtractedEndpointData $endpointData The endpoint we are currently processing.
      *   Contains details about httpMethods, controller, method, route, url, etc, as well as already extracted data.
-     * @param array $routeRules Array of rules for the ruleset which this route belongs to.
+     * @param array $settings Settings to be applied to this strategy
      *
      * See the documentation linked above for more details about writing custom strategies.
      *
      * @return array|null
      */
-    public function __invoke(ExtractedEndpointData $endpointData, array $routeRules = []): ?array
+    public function __invoke(ExtractedEndpointData $endpointData, array $settings = []): ?array
     {
         return [];
     }

@@ -25,8 +25,7 @@ abstract class Strategy
 
     /**
      * @param ExtractedEndpointData $endpointData
-     * @param array $settings Settings to be applied to this strategy while processing this route.
-     *   In the past, this was "routeRules".
+     * @param array $settings Settings to be applied to this strategy.
      *
      * @return array|null
      */
@@ -47,12 +46,6 @@ abstract class Strategy
         array $otherSettings = []
     ): array
     {
-        if (!empty($only) && !empty($except)) {
-            throw new \InvalidArgumentException(
-                "You can not specify both \$only and \$except together in your ".static::class." settings"
-            );
-        }
-
         return [
             static::class,
             ['only' => $only, 'except' => $except, ...$otherSettings],

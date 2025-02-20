@@ -30,9 +30,11 @@ trait InstantiatesExampleModels
 
         if ($type == null) {
             $parameter = Arr::first($transformationMethod->getParameters());
-            if ($parameter->hasType() && !$parameter->getType()->isBuiltin() && class_exists($parameter->getType()->getName())) {
+            $parameterType = $parameter->hasType() ? $parameter->getType() : null;
+            if ($parameterType instanceof \ReflectionNamedType &&
+                !$parameterType->isBuiltin() && class_exists($parameterType->getName())) {
                 // Ladies and gentlemen, we have a type!
-                $type = $parameter->getType()->getName();
+                $type = $parameterType->getName();
             }
         }
         if ($type == null) {
