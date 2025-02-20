@@ -7,7 +7,7 @@
 </p>
 
 
-> [v4 is out now](https://scribe.knuckles.wtf/blog/laravel-v4)! Featuring subgroups, easier sorting, and an automated upgrade command.
+> [v5 is out now](https://scribe.knuckles.wtf/migrating)!
 
 Scribe helps you generate API documentation for humans from your Laravel codebase. See a live example at [demo.scribe.knuckles.wtf](https://demo.scribe.knuckles.wtf).
 
@@ -28,8 +28,6 @@ Scribe helps you generate API documentation for humans from your Laravel codebas
 
 ## Documentation
 Check out the documentation at [scribe.knuckles.wtf/laravel](http://scribe.knuckles.wtf/laravel).
-
-If you're coming from `mpociot/laravel-apidoc-generator`, first migrate [to v3](https://scribe.knuckles.wtf/laravel/3.x/migrating-apidoc), then [to v4](https://scribe.knuckles.wtf/laravel/migrating-v4).
 
 ## Contributing
 Contributing is easy! See our [contribution guide](https://scribe.knuckles.wtf/laravel/contributing).

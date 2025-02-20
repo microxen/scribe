@@ -65,6 +65,7 @@ class GetFromFormRequestBase extends Strategy
         if (method_exists($formRequest, 'validator')) {
             $validationFactory = app(ValidationFactory::class);
 
+            // @phpstan-ignore-next-line
             return app()->call([$formRequest, 'validator'], [$validationFactory])
                 ->getRules();
         } elseif (method_exists($formRequest, 'rules')) {

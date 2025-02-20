@@ -118,6 +118,27 @@ class OutputTest extends BaseLaravelTest
     }
 
     /** @test */
+    public function generates_and_adds_routes()
+    {
+        RouteFacade::post('/api/withBodyParameters', [TestController::class, 'withBodyParameters']);
+
+        $this->setConfig([
+            'type' => 'laravel',
+            'laravel.add_routes' => true,
+            'postman.enabled' => true,
+            'openapi.enabled' => true,
+        ]);
+        $this->generate();
+
+        $response = $this->get('/docs');
+        $response->assertStatus(200);
+        $response = $this->get('/docs.postman');
+        $response->assertStatus(200);
+        $response = $this->get('/docs.openapi');
+        $response->assertStatus(200);
+    }
+
+    /** @test */
     public function generated_postman_collection_file_is_correct()
     {
         if (phpversion() < 8.3) {
@@ -156,28 +177,15 @@ class OutputTest extends BaseLaravelTest
         $generatedCollection['info']['_postman_id'] = '';
         $fixtureCollection = json_decode(file_get_contents(__DIR__ . '/../Fixtures/collection.json'), true);
 
+        // Laravel 11 began adding CORS headers by default
+        foreach ($generatedCollection["item"] as &$group) {
+            foreach ($group["item"] as &$endpoint) {
+                foreach ($endpoint["response"] as &$response) {
+                    $response["header"] = array_filter($response["header"], fn ($header) => $header["key"] !== "access-control-allow-origin");
+                }
+            }
+        }
         $this->assertEquals($fixtureCollection, $generatedCollection);
-    }
-
-    /** @test */
-    public function generates_and_adds_routes()
-    {
-        RouteFacade::post('/api/withBodyParameters', [TestController::class, 'withBodyParameters']);
-
-        $this->setConfig([
-            'type' => 'laravel',
-            'laravel.add_routes' => true,
-            'postman.enabled' => true,
-            'openapi.enabled' => true,
-        ]);
-        $this->generate();
-
-        $response = $this->get('/docs');
-        $response->assertStatus(200);
-        $response = $this->get('/docs.postman');
-        $response->assertStatus(200);
-        $response = $this->get('/docs.openapi');
-        $response->assertStatus(200);
     }
 
     /** @test */

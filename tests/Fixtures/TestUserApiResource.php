@@ -35,9 +35,7 @@ class TestUserApiResource extends JsonResource
             }),
         ];
 
-        if (version_compare(Application::VERSION, '9', '>=')) {
-            $result['children_count'] = $this->whenCounted('children_count');
-        }
+        $result['children_count'] = $this->whenCounted('children_count');
 
         if ($this['state1'] && $this['random-state']) {
             $result['state1'] = $this['state1'];
