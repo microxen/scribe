@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
 use Knuckles\Scribe\Tools\Utils;
+use Symfony\Component\HttpFoundation\StreamedJsonResponse;
 
 /**
  * @group Group A
@@ -252,6 +253,18 @@ class TestController extends Controller
             'delicious' => $fruit->delicious,
             'responseCall' => true,
         ];
+    }
+
+    public function withStreamedResponse()
+    {
+        function yieldItems() {
+            yield 'one';
+            yield 'two';
+        }
+        // Laravel v11 added the shortcut response()->streamJson(...)
+        return new StreamedJsonResponse([
+            'items' => yieldItems(),
+        ]);
     }
 
     public function echoesConfig()

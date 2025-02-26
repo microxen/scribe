@@ -5,7 +5,6 @@ namespace Knuckles\Scribe\Extracting\Strategies\Responses;
 use Exception;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Config;
@@ -18,6 +17,8 @@ use Knuckles\Scribe\Tools\ConsoleOutputUtils as c;
 use Knuckles\Scribe\Tools\ErrorHandlingUtils as e;
 use Knuckles\Scribe\Tools\Globals;
 use Knuckles\Scribe\Tools\Utils;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Make a call to the route and retrieve its response.
@@ -89,7 +90,7 @@ class ResponseCalls extends Strategy
             $response = [
                 [
                     'status' => $response->getStatusCode(),
-                    'content' => $response->getContent(),
+                    'content' => $this->getContentFromResponse($response),
                     'headers' => $this->getResponseHeaders($response),
                 ],
             ];
@@ -240,7 +241,7 @@ class ResponseCalls extends Strategy
      *
      * @param Route $route
      *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return Response
      * @throws Exception
      */
     protected function makeApiCall(Request $request, Route $route)
@@ -248,7 +249,7 @@ class ResponseCalls extends Strategy
         return $this->callLaravelRoute($request);
     }
 
-    protected function callLaravelRoute(Request $request): \Symfony\Component\HttpFoundation\Response
+    protected function callLaravelRoute(Request $request): Response
     {
         /** @var \Illuminate\Foundation\Http\Kernel $kernel */
         $kernel = app(Kernel::class);
@@ -322,5 +323,27 @@ class ResponseCalls extends Strategy
                 'fileParams',
                 'cookies',
             ));
+    }
+
+    protected function getContentFromResponse(Response $response): string|false
+    {
+        if (!$response instanceof StreamedResponse) {
+            return $response->getContent();
+        }
+
+        // For streamed responses, the content is null, and only output directly via "echo" when we call "sendContent".
+        // We use output buffering to capture the output into a new fake response.
+        $renderedResponse = new Response('', $response->getStatusCode());
+        $originalCallback = $response->getCallback();
+        $response->setCallback(function () use ($originalCallback, $renderedResponse) {
+            ob_start(function ($output) use ($renderedResponse) {
+                $renderedResponse->setContent($output);
+            });
+            $originalCallback();
+            ob_end_flush();
+        });
+        $response->sendContent();
+        $renderedResponse->headers = $response->headers;
+        return $renderedResponse->getContent();
     }
 }
