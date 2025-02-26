@@ -601,7 +601,7 @@ class OpenAPISpecWriterTest extends BaseUnitTest
     }
 
     /** @test */
-    public function adds_required_fields_on_objects_wrapped_in_array()
+    public function adds_required_fields_on_array_of_objects()
     {
         $endpointData = $this->createMockEndpointData([
             'httpMethods' => ['GEt'],
@@ -677,6 +677,55 @@ class OpenAPISpecWriterTest extends BaseUnitTest
                                         'uuid',
                                         'primary',
                                     ]
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ], $results['paths']['/path1']['get']['responses']);
+    }
+
+    /** @test */
+    public function generates_correctly_for_array_of_strings()
+    {
+        $endpointData = $this->createMockEndpointData([
+            'httpMethods' => ['GET'],
+            'uri' => '/path1',
+            'responses' => [
+                [
+                    'status' => 200,
+                    'description' => 'List of entities',
+                    'content' => '{"data":["Resource name"]}',
+                ],
+            ],
+            'responseFields' => [
+                'data' => [
+                    'name' => 'data',
+                    'type' => 'string[]',
+                    'description' => 'Data wrapper',
+                ],
+            ],
+        ]);
+
+        $groups = [$this->createGroup([$endpointData])];
+
+        $results = $this->generate($groups);
+
+        $this->assertArraySubset([
+            '200' => [
+                'description' => 'List of entities',
+                'content' => [
+                    'application/json' => [
+                        'schema' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'data' => [
+                                    'type' => 'array',
+                                    'description' => 'Data wrapper',
+                                    'items' => [
+                                        'type' => 'string',
+                                    ],
                                 ],
                             ],
                         ],

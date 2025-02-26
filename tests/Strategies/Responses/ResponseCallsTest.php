@@ -172,6 +172,23 @@ class ResponseCallsTest extends BaseLaravelTest
         $this->assertNull($responses);
     }
 
+    /** @test */
+    public function can_get_content_from_streamed_response()
+    {
+        $route = LaravelRouteFacade::post('/withStreamedResponse', [TestController::class, 'withStreamedResponse']);
+
+        $this->withoutExceptionHandling();
+        $responses = $this->invokeStrategy($route);
+
+        $this->assertEquals(200, $responses[0]['status']);
+        $this->assertArraySubset([
+            'items' => [
+                'one',
+                'two',
+            ]
+        ], json_decode($responses[0]['content'], true));
+    }
+
     protected function convertRules(array $rules): mixed
     {
         return Extractor::transformOldRouteRulesIntoNewSettings('responses', $rules, ResponseCalls::class);
