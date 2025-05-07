@@ -12,6 +12,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 
+## 5.2.1 (1 May 2025)
+### Added
+- Fix regressions in parsing validation rules [a9e7a668d](https://github.com/knuckleswtf/scribe/commit/a9e7a668d7fa74ad8a1591e443db6600498238ef)
+
+## 5.2.0 (17 April 2025)
+### Added
+- Fix breaking bugfix for validation rules (array of objects) in newer Laravel versions [03968babc9](https://github.com/knuckleswtf/scribe/commit/03968babc901d38a284d3569000205e7d38ba1e1)
+
+### Fixed
+- Avoid swallowing errors on example model instantiation (#964)[https://github.com/knuckleswtf/scribe/pull/964]
+
 ## 5.1.0 (25 February 2025)
 ### Added
 - Support for streamed responses in response calls [790ad94e512](https://github.com/knuckleswtf/scribe/commit/790ad94e512d987feae6f0443835d8cf8de64f53)
